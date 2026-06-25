@@ -1,4 +1,4 @@
-from dlai_study_pack.crawler import TranscriptCrawler
+from study.crawler import TranscriptCrawler
 
 
 def test_existing_lesson_path_prefers_transcripts_directory(tmp_path):

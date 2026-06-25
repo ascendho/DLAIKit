@@ -78,7 +78,7 @@ def main(argv=None):
         for error in code_assets.errors:
             print("Code Failed: {}".format(error))
     print(
-        "Saved: {}  Skipped: {}  Metadata: {}  Failed: {}".format(
+        "Transcripts Saved: {}  Skipped: {}  Metadata: {}  Failed: {}".format(
             saved,
             skipped,
             metadata,
@@ -188,6 +188,7 @@ def print_progress(index, total, status, title):
 
 class ProgressReporter:
     SPINNER_FRAMES = ("|", "/", "-", "\\")
+    ACTIVE_STATUSES = {"discovering", "fetching", "writing"}
     STATUS_ICONS = {
         "saved": "+",
         "skipped": "-",
@@ -207,22 +208,22 @@ class ProgressReporter:
 
     def update(self, index, total, status, title):
         title = self._compact_title(title)
-        if status in {"discovering", "fetching"}:
-            self._start(index, total, title)
+        if status in self.ACTIVE_STATUSES:
+            self._start(index, total, status, title)
             return
         self._finish(index, total, status, title)
 
     def close(self):
-        self._stop_spinner()
+        self._stop_spinner(clear=True)
 
-    def _start(self, index, total, title):
+    def _start(self, index, total, status, title):
         if not self.enabled:
-            self._write_line(self._format_plain_active_line(index, total, title))
+            self._write_line(self._format_plain_active_line(index, total, status, title))
             return
-        line = self._format_spinner_line(self.SPINNER_FRAMES[0], index, total, title)
+        line = self._format_spinner_line(self.SPINNER_FRAMES[0], index, total, status, title)
         self._stop_spinner()
         with self._lock:
-            self._current = (index, total, title)
+            self._current = (index, total, status, title)
             self._stop_event.clear()
             self._write_carriage(line)
             self._thread = threading.Thread(target=self._spin, daemon=True)
@@ -232,9 +233,15 @@ class ProgressReporter:
         if self.enabled:
             self._stop_spinner(clear=True)
             icon = self.STATUS_ICONS.get(status, " ")
-            self._write_line("{} [{:02d}/{}] {:<8} {}".format(icon, index, total, status, title))
+            if index <= 0 or total <= 0:
+                self._write_line("{} {:<8} {}".format(icon, status, title))
+                return
+            self._write_line("{} [{}] {:<8} {}".format(icon, self._format_counter(index, total), status, title))
             return
-        self._write_line("[{:02d}/{}] {:<8} {}".format(index, total, status, title))
+        if index <= 0 or total <= 0:
+            self._write_line("{:<8} {}".format(status, title))
+            return
+        self._write_line("[{}] {:<8} {}".format(self._format_counter(index, total), status, title))
 
     def _spin(self):
         for frame in itertools.cycle(self.SPINNER_FRAMES):
@@ -243,8 +250,8 @@ class ProgressReporter:
             with self._lock:
                 if self._current is None:
                     return
-                index, total, title = self._current
-            self._write_carriage(self._format_spinner_line(frame, index, total, title))
+                index, total, status, title = self._current
+            self._write_carriage(self._format_spinner_line(frame, index, total, status, title))
             time.sleep(self.interval)
 
     def _stop_spinner(self, clear=False):
@@ -271,15 +278,23 @@ class ProgressReporter:
             title = title[:77] + "..."
         return title
 
-    def _format_plain_active_line(self, index, total, title):
+    def _format_plain_active_line(self, index, total, status, title):
         if index <= 0 or total <= 0:
-            return "discovering {}".format(title)
-        return "[{:02d}/{}] fetching {}".format(index, total, title)
+            return "{} {}".format(status, title)
+        return "[{}] {} {}".format(self._format_counter(index, total), status, title)
 
-    def _format_spinner_line(self, frame, index, total, title):
+    def _format_spinner_line(self, frame, index, total, status, title):
         if index <= 0 or total <= 0:
-            return "{} discovering {}".format(frame, title)
-        return "{} [{:02d}/{}] fetching {}".format(frame, index, total, title)
+            return "{} {} {}".format(frame, status, title)
+        return "{} [{}] {} {}".format(frame, self._format_counter(index, total), status, title)
+
+    def _format_counter(self, index, total):
+        width = max(2, len(str(total)))
+        return "{index:0{width}d}/{total:0{width}d}".format(
+            index=index,
+            total=total,
+            width=width,
+        )
 
 
 if __name__ == "__main__":

@@ -156,9 +156,11 @@ class TranscriptCrawler:
                 self._emit_progress(index, total, result.status, result.title)
 
         if self.code_url:
+            self._emit_progress(0, 0, "discovering", "course code")
             lab_links = self.discover_jupyter_lab_links(course_info, html_cache)
             self.code_assets_summary = self.download_code_assets(course_slug, lab_links)
 
+        self._emit_progress(0, 0, "writing", "study pack")
         index_path = write_index(
             self.output_root,
             course_slug,

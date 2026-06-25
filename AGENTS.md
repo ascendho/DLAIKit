@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Core code lives in `src/dlai_study_pack/`. Keep parsing, fetching,
+Core code lives in `src/study/`. Keep parsing, fetching,
 crawling, writing, and CLI concerns in separate modules. Tests live in `tests/`
 and should use local HTML strings or fixtures instead of live course pages.
 Generated study packs belong under `exports/<course-slug>/`; local browser login
@@ -29,7 +29,7 @@ dlai-transcripts
 Run checks:
 
 ```sh
-python3 -m py_compile src/dlai_study_pack/*.py
+python3 -m py_compile src/study/*.py
 python3 -m pytest
 ```
 

@@ -1,4 +1,4 @@
-from dlai_study_pack.parser import (
+from study.parser import (
     clean_lines,
     extract_course_info,
     extract_lesson_data,

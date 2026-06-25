@@ -1,6 +1,6 @@
-# DeepLearning.AI Course Exporter
-
 > 中文版本同样可用：[README.md](README.md)。
+
+# DeepLearning.AI Course Exporter
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.9-blue)
 ![Playwright](https://img.shields.io/badge/browser-Playwright-2EAD33)
@@ -36,7 +36,7 @@ python3 -m playwright install chromium
 
 ## Configuration
 
-Create or edit `dlai-transcripts.json` in the project root, next to `src/`.
+Edit `dlai-transcripts.json` in the project root:
 
 ```json
 {
@@ -59,11 +59,10 @@ dlai-transcripts
 ```
 
 The command always exports the full study pack for all visible resources. No
-extra arguments are needed.
-
-The first authenticated run may open a browser window. Complete login in that
-window and the command will continue automatically. Later runs reuse the saved
-login state and run in the background by default.
+extra arguments are needed. The first authenticated run may open a browser
+window. Complete login in that browser, and the command will continue
+automatically. Later runs reuse the saved login state and run in the background
+by default.
 
 ## Export Structure
 
@@ -103,20 +102,15 @@ Playwright browser state needed to reuse an existing web login:
 .auth/deeplearning_ai.json
 ```
 
-Safari, Chrome, Atlas, and Playwright do not share browser login state. If
-Safari can open the Jupyter lab but the command returns `HTTP 403 Forbidden` or
-shows the Jupyter token login page, Playwright does not yet have that lab's
-Jupyter cookie. In normal cases, the extractor reads the temporary token from
-the course code lesson iframe. Only when the iframe token is not available,
-add `"code_token": "your Jupyter token"` to `dlai-transcripts.json` in the
-project root, or set `"browser_visibility"` to `"visible"` and run the command
-once.
+In normal cases, the tool reads the temporary token from the course code lesson
+iframe. Only when the course page does not expose an iframe token, add
+`"code_token": "your Jupyter token"` to `dlai-transcripts.json` in the project
+root, or set `"browser_visibility"` to `"visible"` and run the command once.
 
 ## Notes
 
 - This project is intended for personal study workflows.
-- Source code lives in `src/dlai_study_pack/`, the import package directory for
+- Source code lives in `src/study/`, the import package directory for
   the standard Python `src` layout. It is not an output directory.
-- `exports/`, legacy `outputs/`, and `.auth/` should stay out of git.
 - DeepLearning.AI page structure can change; parser tests use local HTML
   fixtures to keep core behavior stable.

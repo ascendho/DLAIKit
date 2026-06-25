@@ -26,7 +26,7 @@ dev = [
 ]
 
 [project.scripts]
-dlai-transcripts = "dlai_study_pack.cli:main"
+dlai-transcripts = "study.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

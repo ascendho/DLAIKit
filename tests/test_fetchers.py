@@ -1,6 +1,6 @@
 import pytest
 
-from dlai_study_pack.fetchers import BrowserFetcher, LoginRequiredError
+from study.fetchers import BrowserFetcher, LoginRequiredError
 
 
 class DummyContext:

@@ -1,9 +1,9 @@
 import json
 
-from dlai_study_pack.code_assets import CodeAssetFile, CodeAssetSummary
-from dlai_study_pack.parser import CourseInfo, LessonInfo, ResourceLink
-from dlai_study_pack.writer import LessonResult, write_index, write_lesson
-from dlai_study_pack.writer import write_course_overview, write_manifest, write_resources
+from study.code_assets import CodeAssetFile, CodeAssetSummary
+from study.parser import CourseInfo, LessonInfo, ResourceLink
+from study.writer import LessonResult, write_index, write_lesson
+from study.writer import write_course_overview, write_manifest, write_resources
 
 
 def test_write_lesson_and_index(tmp_path):

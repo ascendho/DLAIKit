@@ -2,7 +2,7 @@ import sys
 
 import pytest
 
-from dlai_study_pack.cli import (
+from study.cli import (
     ConfigError,
     ProgressReporter,
     build_parser,
@@ -129,18 +129,30 @@ def test_print_progress_uses_compact_status_line(capsys):
     assert captured.err == "[03/11] saved    Your First Coding Agent\n"
 
 
+def test_print_progress_pads_total_width(capsys):
+    print_progress(1, 1, "skipped", "course code")
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "[01/01] skipped  course code\n"
+
+
 def test_progress_reporter_non_tty_uses_plain_lines(capsys):
     reporter = ProgressReporter(stream=sys.stderr, enabled=False)
 
     reporter.update(0, 0, "discovering", "browser session")
     reporter.update(1, 2, "fetching", "Introduction")
     reporter.update(1, 2, "skipped", "Introduction")
+    reporter.update(1, 1, "skipped", "course code")
+    reporter.update(0, 0, "writing", "study pack")
 
     captured = capsys.readouterr()
     assert captured.err == (
         "discovering browser session\n"
-        "[01/2] fetching Introduction\n"
-        "[01/2] skipped  Introduction\n"
+        "[01/02] fetching Introduction\n"
+        "[01/02] skipped  Introduction\n"
+        "[01/01] skipped  course code\n"
+        "writing study pack\n"
     )
 
 
@@ -151,10 +163,15 @@ def test_progress_reporter_tty_uses_spinner_and_status_icon():
     reporter.update(0, 0, "discovering", "browser session")
     reporter.update(2, 11, "fetching", "Inside a Coding Agent")
     reporter.update(2, 11, "saved", "Inside a Coding Agent")
+    reporter.update(1, 1, "skipped", "course code")
+    reporter.update(0, 0, "writing", "study pack")
     reporter.close()
 
     output = stream.getvalue()
     assert "discovering browser session" in output
     assert "[02/11] fetching Inside a Coding Agent" in output
     assert "+ [02/11] saved    Inside a Coding Agent\n" in output
+    assert "- [01/01] skipped  course code\n" in output
+    assert "writing study pack" in output
+    assert "+ saved    study pack\n" not in output
     assert "\r" in output

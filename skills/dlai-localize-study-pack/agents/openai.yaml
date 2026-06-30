@@ -1,0 +1,6 @@
+interface:
+  display_name: "DLAI Localize Study Pack"
+  short_description: "Translate DLAI exports with Codex"
+  default_prompt: "Use $dlai-localize-study-pack to directly translate a DeepLearning.AI study-pack export into Simplified Chinese."
+policy:
+  allow_implicit_invocation: true

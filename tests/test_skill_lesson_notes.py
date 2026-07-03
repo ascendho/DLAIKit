@@ -36,6 +36,7 @@ def make_export(tmp_path):
     zh_dir = export_dir / "zh"
     (export_dir / "transcripts").mkdir(parents=True)
     (zh_dir / "transcripts").mkdir(parents=True)
+    (zh_dir / "code" / "lessons" / "Appendix").mkdir(parents=True)
     (zh_dir / "code" / "lessons" / "L1").mkdir(parents=True)
     (zh_dir / "code" / "lessons" / "lib").mkdir(parents=True)
     (zh_dir / "code" / "project").mkdir(parents=True)
@@ -105,6 +106,20 @@ def make_export(tmp_path):
     )
     (export_dir / "transcripts" / "02-build-agent.md").write_text(
         "# Build Agent\n\nOriginal Build transcript.",
+        encoding="utf-8",
+    )
+    (zh_dir / "code" / "lessons" / "Appendix" / "Appendix.ipynb").write_text(
+        json.dumps(
+            {
+                "cells": [
+                    {"cell_type": "markdown", "source": "# Appendix\n\nAppendix help."},
+                    {"cell_type": "code", "source": "print('appendix')\n"},
+                ],
+                "metadata": {},
+                "nbformat": 4,
+                "nbformat_minor": 5,
+            }
+        ),
         encoding="utf-8",
     )
     (zh_dir / "code" / "lessons" / "L1" / "L1.ipynb").write_text(
@@ -222,6 +237,8 @@ def test_prepare_builds_lesson_contexts_from_translated_and_fallback_materials(t
     assert "English intro" not in intro
     assert "Original Build transcript" in build
     assert "code/lessons/L1/L1.ipynb" in build
+    assert "code/lessons/Appendix/Appendix.ipynb" not in build
+    assert "Appendix help" not in build
     assert "def run_agent" in build
     assert "execution_count: 1" in build
     assert "Notebook outputs" in build

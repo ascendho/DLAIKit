@@ -549,7 +549,7 @@ def _apply_python(text, item_refs, translations, cell_index=None):
     docstring_lines = _docstring_start_lines(text)
     comment_index = 0
     docstring_index = 0
-    new_tokens = []
+    replacements = []
     try:
         for token in tokenize.generate_tokens(io.StringIO(text).readline):
             replacement = None
@@ -565,14 +565,36 @@ def _apply_python(text, item_refs, translations, cell_index=None):
                     replacement = _quote_docstring(translations[item_id].strip())
 
             if replacement is None:
-                new_tokens.append(token)
-            else:
-                new_tokens.append(
-                    tokenize.TokenInfo(token.type, replacement, token.start, token.end, token.line)
-                )
+                continue
+            replacements.append((token.start, token.end, replacement))
     except tokenize.TokenError:
         return text
-    return tokenize.untokenize(new_tokens)
+    return _replace_token_spans(text, replacements)
+
+
+def _replace_token_spans(text, replacements):
+    if not replacements:
+        return text
+    lines = text.splitlines(keepends=True)
+    offsets = []
+    total = 0
+    for line in lines:
+        offsets.append(total)
+        total += len(line)
+
+    def offset(position):
+        line, column = position
+        if line <= 0:
+            return column
+        if line > len(offsets):
+            return len(text)
+        return offsets[line - 1] + column
+
+    result = text
+    spans = [(offset(start), offset(end), replacement) for start, end, replacement in replacements]
+    for start, end, replacement in sorted(spans, reverse=True):
+        result = result[:start] + replacement + result[end:]
+    return result
 
 
 def _quote_docstring(text):

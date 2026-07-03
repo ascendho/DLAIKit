@@ -301,6 +301,8 @@ def _notebook_candidates(export_dir, localized_dir):
     for material in _preferred_files(export_dir, localized_dir, "code/lessons"):
         if material.path.suffix != ".ipynb":
             continue
+        if not _is_lesson_notebook_path(material.rel_path):
+            continue
         order += 1
         candidates.append(
             NotebookCandidate(
@@ -311,6 +313,10 @@ def _notebook_candidates(export_dir, localized_dir):
             )
         )
     return sorted(candidates, key=lambda item: item.order)
+
+
+def _is_lesson_notebook_path(rel_path):
+    return re.search(r"/L\d+/", rel_path, flags=re.IGNORECASE) is not None
 
 
 def _match_notebooks(lessons, notebooks):

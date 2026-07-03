@@ -216,6 +216,38 @@ def test_apply_writes_localized_markdown_python_and_notebook(tmp_path):
     assert notebook["cells"][1]["outputs"] == source_notebook["cells"][1]["outputs"]
 
 
+def test_apply_python_handles_chinese_comment_and_docstring_replacements():
+    helper = load_helper()
+    source = (
+        "def run():\n"
+        "    \"\"\"Return value.\"\"\"\n"
+        "    harmful_command = \"\"\"\n"
+        "echo test\n"
+        "\"\"\"\n"
+        "    # custom_executor(harmful_command)\n"
+        "    # Let's not execute this but it would not error out.\n"
+        "    return 1\n"
+    )
+    item_refs = [
+        {"id": "doc", "locator": {"type": "code-docstring", "token_index": 0}},
+        {"id": "comment-1", "locator": {"type": "code-comment", "token_index": 0}},
+        {"id": "comment-2", "locator": {"type": "code-comment", "token_index": 1}},
+    ]
+    translations = {
+        "doc": "返回值。",
+        "comment-1": "custom_executor(harmful_command)",
+        "comment-2": "我们不要执行这段代码；它不会报错。",
+    }
+
+    localized = helper._apply_python(source, item_refs, translations)
+
+    assert "Return value." not in localized
+    assert "Let's not execute" not in localized
+    assert "返回值。" in localized
+    assert "# 我们不要执行这段代码；它不会报错。" in localized
+    compile(localized, "<localized.py>", "exec")
+
+
 def test_prepare_skips_unchanged_after_apply_and_requeues_changed_file(tmp_path):
     export_dir = make_export(tmp_path)
 

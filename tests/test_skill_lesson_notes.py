@@ -112,7 +112,42 @@ def make_export(tmp_path):
             {
                 "cells": [
                     {"cell_type": "markdown", "source": "# L1: Build Agent\n\nNotebook overview."},
-                    {"cell_type": "code", "source": "def run_agent():\n    return 'ok'\n"},
+                    {
+                        "cell_type": "code",
+                        "execution_count": 1,
+                        "outputs": [
+                            {
+                                "output_type": "stream",
+                                "name": "stdout",
+                                "text": "\u001b[34magent ready\u001b[0m\nid=inv1vzsykq8n2\n",
+                            },
+                            {
+                                "output_type": "execute_result",
+                                "execution_count": 1,
+                                "data": {"text/plain": "Result: ok"},
+                                "metadata": {},
+                            },
+                            {
+                                "output_type": "error",
+                                "ename": "ValueError",
+                                "evalue": "bad input",
+                                "traceback": ["\u001b[31mTraceback line\u001b[0m"],
+                            },
+                        ],
+                        "source": "def run_agent():\n    return 'ok'\n",
+                    },
+                    {
+                        "cell_type": "code",
+                        "execution_count": 2,
+                        "outputs": [
+                            {
+                                "output_type": "display_data",
+                                "data": {"image/png": "BASE64_IMAGE_PAYLOAD"},
+                                "metadata": {},
+                            }
+                        ],
+                        "source": "plot_agent_trace()\n",
+                    },
                 ],
                 "metadata": {},
                 "nbformat": 4,
@@ -188,6 +223,16 @@ def test_prepare_builds_lesson_contexts_from_translated_and_fallback_materials(t
     assert "Original Build transcript" in build
     assert "code/lessons/L1/L1.ipynb" in build
     assert "def run_agent" in build
+    assert "execution_count: 1" in build
+    assert "Notebook outputs" in build
+    assert "[stdout]" in build
+    assert "agent ready" in build
+    assert "id=<redacted>" in build
+    assert "Result: ok" in build
+    assert "ValueError: bad input" in build
+    assert "Binary/rich display output omitted: image/png" in build
+    assert "BASE64_IMAGE_PAYLOAD" not in build
+    assert "\u001b" not in build
     assert "code/lessons/lib/tools.py" in build
     assert "code/project/project.ipynb" in project
     assert "Project docs" in project

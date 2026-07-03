@@ -16,6 +16,8 @@ DEFAULT_MAX_ITEMS = 20
 DEFAULT_MAX_CHARS = 12000
 TARGET_LANGUAGE = "zh-CN"
 STATE_DIRNAME = ".scholarium-localize"
+GENERATED_TOP_LEVEL_DIRS = {"zh", "notes"}
+GENERATED_STATE_DIRS = {STATE_DIRNAME, ".scholarium-notes"}
 
 
 class LocalizeError(RuntimeError):
@@ -43,7 +45,7 @@ def command_prepare(args):
     skipped = 0
 
     for path in sorted(source_dir.rglob("*")):
-        if path.is_dir() or _is_relative_to(path, output_dir):
+        if path.is_dir() or _should_skip_source_path(source_dir, output_dir, path):
             continue
 
         relative_path = path.relative_to(source_dir).as_posix()
@@ -290,6 +292,21 @@ def _is_relative_to(path, base):
         return True
     except ValueError:
         return False
+
+
+def _should_skip_source_path(source_dir, output_dir, path):
+    if _is_relative_to(path, output_dir):
+        return True
+    try:
+        relative = path.relative_to(source_dir)
+    except ValueError:
+        return False
+    parts = relative.parts
+    if not parts:
+        return False
+    if parts[0] in GENERATED_TOP_LEVEL_DIRS:
+        return True
+    return any(part in GENERATED_STATE_DIRS for part in parts)
 
 
 def _file_kind(path):

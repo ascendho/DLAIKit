@@ -78,9 +78,32 @@ def make_export(tmp_path):
                     {"cell_type": "markdown", "metadata": {}, "source": "# Lesson\n\nEnglish notes."},
                     {
                         "cell_type": "code",
-                        "metadata": {},
-                        "outputs": [],
-                        "execution_count": None,
+                        "metadata": {"trusted": True},
+                        "outputs": [
+                            {
+                                "output_type": "stream",
+                                "name": "stdout",
+                                "text": "runtime log\n",
+                            },
+                            {
+                                "output_type": "execute_result",
+                                "execution_count": 7,
+                                "data": {"text/plain": "rendered result"},
+                                "metadata": {},
+                            },
+                            {
+                                "output_type": "display_data",
+                                "data": {"image/png": "BASE64_IMAGE_PAYLOAD"},
+                                "metadata": {},
+                            },
+                            {
+                                "output_type": "error",
+                                "ename": "RuntimeError",
+                                "evalue": "remote failure",
+                                "traceback": ["Traceback line"],
+                            },
+                        ],
+                        "execution_count": 7,
                         "source": ["# explain code\n", "x = 1\n"],
                     },
                 ],
@@ -107,14 +130,49 @@ def test_prepare_creates_chunks_and_copies_assets(tmp_path):
     assert (output_dir / "code" / "data.csv").read_text(encoding="utf-8") == "name,value\nA,1\n"
 
     kinds = []
+    item_text = []
     for path in pending:
         payload = json.loads(path.read_text(encoding="utf-8"))
         kinds.extend(item["kind"] for item in payload["items"])
+        item_text.extend(item["text"] for item in payload["items"])
     assert "markdown" in kinds
     assert "python-comment" in kinds
     assert "python-docstring" in kinds
     assert "notebook-markdown" in kinds
     assert "notebook-code-comment" in kinds
+    combined_text = "\n".join(item_text)
+    assert "runtime log" not in combined_text
+    assert "rendered result" not in combined_text
+    assert "BASE64_IMAGE_PAYLOAD" not in combined_text
+    assert "remote failure" not in combined_text
+
+
+def test_prepare_skips_generated_dirs_with_custom_output(tmp_path):
+    export_dir = make_export(tmp_path)
+    (export_dir / "zh").mkdir()
+    (export_dir / "zh" / "already-localized.md").write_text(
+        "# 已翻译\n\nAlready localized output.",
+        encoding="utf-8",
+    )
+    (export_dir / "notes" / ".scholarium-notes").mkdir(parents=True)
+    (export_dir / "notes" / "01-intro.md").write_text(
+        "# Note\n\nGenerated study note.",
+        encoding="utf-8",
+    )
+    (export_dir / "notes" / ".scholarium-notes" / "state.json").write_text(
+        "{}",
+        encoding="utf-8",
+    )
+
+    output_dir = export_dir / "localized"
+    result = run_helper("prepare", str(export_dir), "--output-dir", str(output_dir), "--max-items", "50")
+
+    assert result.returncode == 0, result.stderr
+    state = json.loads((output_dir / ".scholarium-localize" / "state.json").read_text(encoding="utf-8"))
+    assert not any(path.startswith("zh/") for path in state["files"])
+    assert not any(path.startswith("notes/") for path in state["files"])
+    assert not (output_dir / "notes").exists()
+    assert not (output_dir / "zh").exists()
 
 
 def test_apply_writes_localized_markdown_python_and_notebook(tmp_path):
@@ -130,6 +188,7 @@ def test_apply_writes_localized_markdown_python_and_notebook(tmp_path):
     assert validate_result.returncode == 0, validate_result.stderr
 
     output_dir = export_dir / "zh"
+    source_notebook = json.loads((export_dir / "code" / "demo.ipynb").read_text(encoding="utf-8"))
     localized_md = (output_dir / "transcripts" / "01-intro.md").read_text(encoding="utf-8")
     assert localized_md.startswith(helper.LOCALIZED_MARKER)
     assert "<summary>English original</summary>" in localized_md
@@ -152,6 +211,9 @@ def test_apply_writes_localized_markdown_python_and_notebook(tmp_path):
     assert "English notes." in markdown_source
     assert "explain code" not in code_source
     assert "# ZH:item-" in code_source
+    assert notebook["cells"][1]["execution_count"] == source_notebook["cells"][1]["execution_count"]
+    assert notebook["cells"][1]["metadata"] == source_notebook["cells"][1]["metadata"]
+    assert notebook["cells"][1]["outputs"] == source_notebook["cells"][1]["outputs"]
 
 
 def test_prepare_skips_unchanged_after_apply_and_requeues_changed_file(tmp_path):

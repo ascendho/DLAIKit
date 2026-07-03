@@ -13,6 +13,8 @@ STATE_DIRNAME = ".scholarium-notes"
 PENDING_DIRNAME = "pending"
 STATE_VERSION = 1
 DEFAULT_MAX_FILE_CHARS = 24000
+NOTEBOOK_OUTPUT_MAX_CHARS = 3000
+ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 REQUIRED_SECTIONS = (
     "## 学习目标",
     "## 核心概念",
@@ -542,11 +544,18 @@ def _render_notebook(path, max_chars):
     for index, cell in enumerate(notebook.get("cells", []), start=1):
         cell_type = cell.get("cell_type", "")
         source = _cell_source(cell).strip()
-        if not source:
+        outputs = cell.get("outputs") or []
+        if not source and not outputs:
             continue
         block = f"<!-- cell {index}: {cell_type} -->\n"
         if cell_type == "code":
+            execution_count = cell.get("execution_count")
+            if execution_count is not None:
+                block += f"<!-- execution_count: {execution_count} -->\n"
             block += "```python\n{}\n```\n".format(source)
+            output_text = _render_notebook_outputs(outputs)
+            if output_text:
+                block += "\nNotebook outputs:\n{}\n".format(output_text)
         else:
             block += source + "\n"
         if total + len(block) > max_chars:
@@ -555,6 +564,99 @@ def _render_notebook(path, max_chars):
         parts.append(block)
         total += len(block)
     return "\n".join(parts).strip()
+
+
+def _render_notebook_outputs(outputs):
+    rendered = []
+    for index, output in enumerate(outputs, start=1):
+        if not isinstance(output, dict):
+            continue
+        output_type = str(output.get("output_type") or "output")
+        text = _notebook_output_text(output)
+        if not text:
+            continue
+        rendered.append(f"Output {index} ({output_type}):\n{text}")
+    return "\n\n".join(rendered)
+
+
+def _notebook_output_text(output):
+    output_type = output.get("output_type")
+    if output_type == "stream":
+        name = output.get("name") or "stream"
+        text = _clean_notebook_output_text(output.get("text", ""))
+        if not text:
+            return ""
+        return _limit_text(f"[{name}]\n{text}", NOTEBOOK_OUTPUT_MAX_CHARS, "[truncated notebook stream output]")
+
+    if output_type == "error":
+        ename = output.get("ename") or "Error"
+        evalue = output.get("evalue") or ""
+        traceback = _clean_notebook_output_text(output.get("traceback", ""))
+        summary = f"{ename}: {evalue}".rstrip(": ")
+        if traceback:
+            summary = f"{summary}\n{traceback}"
+        return _limit_text(summary, NOTEBOOK_OUTPUT_MAX_CHARS, "[truncated notebook error output]")
+
+    if output_type in {"execute_result", "display_data"}:
+        data = output.get("data") or {}
+        text = _mime_bundle_text(data)
+        if text:
+            return _limit_text(text, NOTEBOOK_OUTPUT_MAX_CHARS, "[truncated notebook rich output]")
+        omitted = _omitted_mime_types(data)
+        if omitted:
+            return "Binary/rich display output omitted: {}".format(", ".join(omitted))
+    return ""
+
+
+def _mime_bundle_text(data):
+    if not isinstance(data, dict):
+        return ""
+    for mime_type in ("text/plain", "text/markdown", "application/json", "text/html"):
+        if mime_type not in data:
+            continue
+        value = data[mime_type]
+        if mime_type == "text/html":
+            value = _strip_html(_source_text(value))
+        elif mime_type == "application/json":
+            value = json.dumps(value, ensure_ascii=False, indent=2)
+        return _clean_notebook_output_text(value)
+    return ""
+
+
+def _omitted_mime_types(data):
+    if not isinstance(data, dict):
+        return []
+    return sorted(mime_type for mime_type in data if mime_type.startswith("image/") or mime_type.startswith("application/"))
+
+
+def _source_text(value):
+    if isinstance(value, list):
+        return "".join(str(item) for item in value)
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, indent=2)
+
+
+def _clean_notebook_output_text(value):
+    text = _source_text(value)
+    text = ANSI_ESCAPE_RE.sub("", text)
+    text = text.replace("\r", "\n")
+    text = re.sub(r"\bid=[A-Za-z0-9_-]{8,}\b", "id=<redacted>", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _strip_html(text):
+    text = re.sub(r"<(script|style)\b.*?</\1>", " ", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _limit_text(text, max_chars, marker):
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip() + f"\n\n{marker}"
 
 
 def _cell_source(cell):

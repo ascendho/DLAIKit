@@ -1,6 +1,6 @@
 ---
 name: scholarium-notes
-description: Generate comprehensive Chinese Markdown study notes for each lesson in a Scholarium export, usually after localization. Use when Codex should synthesize translated transcripts, translated Markdown, notebooks, lab/project code, and fallback untranslated materials into high-quality per-lesson notes under an export's notes/ directory.
+description: Generate comprehensive Chinese Markdown study notes for each lesson in a Scholarium export, usually after localization. Use when Codex should synthesize translated transcripts, translated Markdown, executed notebook outputs, lab/project code, and fallback untranslated materials into high-quality per-lesson notes under an export's notes/ directory.
 ---
 
 # Scholarium Lesson Notes
@@ -38,10 +38,11 @@ Write notes in Chinese by default. Use a comprehensive but study-friendly style:
   - `## 关键收获`
   - `## 复习问题`
 - Use translated transcripts and localized notebooks as primary evidence.
+- Treat executed notebook outputs, return values, logs, and errors as important evidence for the `代码/实践解读` section.
 - Integrate code from notebooks, helper files, shared libraries, and project docs when it helps learning.
 - Add useful background knowledge as `补充理解`, but do not present it as course transcript content.
 - Quote only short code snippets. Link or name source paths for longer files instead of copying whole notebooks or large code files.
-- Do not copy full transcripts, full notebooks, or full lab/project files into the notes.
+- Do not copy full transcripts, full notebooks, full lab/project files, long logs, or raw notebook outputs into the notes.
 
 ## Context Packs
 
@@ -51,12 +52,13 @@ Each pending context contains:
 - lesson metadata and source URL;
 - course overview/resource excerpts;
 - transcript content if available;
-- matched notebook/code/project/shared files;
+- matched notebook/code/project/shared files, including summarized notebook outputs when present;
 - warnings when a lesson lacks a transcript or code match.
 
 Use the context pack as the source of truth for that lesson. If a context pack
 lists multiple possible code files, synthesize only the parts relevant to the
-lesson title and learning flow.
+lesson title and learning flow. When notebook outputs are present, explain what
+they demonstrate instead of merely restating the code.
 
 ## Validation
 

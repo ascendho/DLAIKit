@@ -47,11 +47,15 @@ python3 -m playwright install chromium
   "output_dir": "exports",
   "auth_state": ".auth/deeplearning_ai.json",
   "browser_visibility": "auto",
+  "execute_lesson_notebooks": false,
+  "notebook_execute_timeout_seconds": 900,
   "force": false
 }
 ```
 
 `course_url` 是必填项。`code_url` 可以留空；留空时只导出字幕和学习包元数据，不保存 lab 代码。配置中的 `code_url` 会作为 lesson lab 入口处理；课程页面中可见的 project 或 graded lab 也可能被发现。使用前请确认你有权访问并本地保存相关内容。
+
+如果希望保存带输出的 lesson notebook，可以设置 `"execute_lesson_notebooks": true`。开启后，Scholarium 会在用户已授权访问的远程 Jupyter/Lab 环境中执行 `code/lessons/` 下的 notebook，再把带 outputs 的 `.ipynb` 保存到本地。`code/project/`、graded、assignment 或 quiz 相关 notebook 不会自动执行。该功能可能耗时并修改远程 lab 会话状态；某个 notebook 执行失败时，程序会继续下载并在代码摘要中记录失败。
 
 ## 运行
 

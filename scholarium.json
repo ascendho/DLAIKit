@@ -4,5 +4,7 @@
   "output_dir": "exports",
   "auth_state": ".auth/deeplearning_ai.json",
   "browser_visibility": "auto",
+  "execute_lesson_notebooks": false,
+  "notebook_execute_timeout_seconds": 900,
   "force": false
 }

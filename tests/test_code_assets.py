@@ -6,6 +6,7 @@ from scholarium.code_assets import (
     extract_jupyter_lab_links,
     JupyterCodeDownloader,
     JupyterLabLink,
+    NotebookExecutionError,
     parse_jupyter_contents_location,
     redact_url,
 )
@@ -48,6 +49,27 @@ class FakeHttpError(RuntimeError):
     def __init__(self, status):
         self.status = status
         super().__init__("GET https://lab.example.test/api/contents?content=1 failed with HTTP {}".format(status))
+
+
+class FakeNotebookExecutor:
+    def __init__(self, fail=False):
+        self.fail = fail
+        self.calls = []
+
+    def execute(self, location, notebook_path, notebook, token=None):
+        self.calls.append((location.base_url, notebook_path, token))
+        cell = notebook["cells"][0]
+        cell["execution_count"] = 1
+        cell["outputs"] = [
+            {
+                "output_type": "stream",
+                "name": "stdout",
+                "text": "executed\n",
+            }
+        ]
+        if self.fail:
+            raise NotebookExecutionError("boom", notebook=notebook)
+        return notebook
 
 
 def jupyter_dir(name, path, content):
@@ -351,6 +373,118 @@ def test_downloader_recurses_and_saves_supported_content(tmp_path):
     assert summary.files[0].path == "lessons/README.md"
     assert client.primed == []
     assert client.requested[0] == "https://lab.example.test/api/contents/course?content=1"
+
+
+def test_downloader_executes_lesson_notebooks_when_enabled(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents/course": jupyter_dir(
+            "course",
+            "course",
+            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "print('hello')")],
+        )
+    }
+    executor = FakeNotebookExecutor()
+
+    summary = JupyterCodeDownloader(
+        FakeJupyterClient(responses),
+        tmp_path,
+        "course-slug",
+        execute_lesson_notebooks=True,
+        notebook_executor=executor,
+    ).download("https://lab.example.test/tree/course?token=secret")
+
+    notebook = json.loads((tmp_path / "course-slug" / "code" / "lessons" / "demo.ipynb").read_text(encoding="utf-8"))
+    assert notebook["cells"][0]["execution_count"] == 1
+    assert notebook["cells"][0]["outputs"][0]["text"] == "executed\n"
+    assert executor.calls == [("https://lab.example.test/api/contents", "course/demo.ipynb", "secret")]
+    assert summary.saved == 1
+    assert summary.executed == 1
+    assert summary.execution_failed == 0
+    assert summary.files[0].message == "executed"
+
+
+def test_downloader_does_not_execute_project_notebooks(tmp_path):
+    responses = {
+        "https://project-lab.example.test/api/contents/project": jupyter_dir(
+            "project",
+            "project",
+            [jupyter_notebook("project.ipynb", "project/project.ipynb", "print('project')")],
+        ),
+        "https://manual-lab.example.test/api/contents": jupyter_dir("", "", []),
+    }
+    executor = FakeNotebookExecutor()
+    links = [JupyterLabLink("https://project-lab.example.test/tree/project", group="project")]
+
+    summary = JupyterCodeDownloader(
+        FakeJupyterClient(responses),
+        tmp_path,
+        "course-slug",
+        execute_lesson_notebooks=True,
+        notebook_executor=executor,
+    ).download("https://manual-lab.example.test/tree", discovered_links=links)
+
+    notebook = json.loads(
+        (tmp_path / "course-slug" / "code" / "project" / "project.ipynb").read_text(encoding="utf-8")
+    )
+    assert notebook["cells"][0]["execution_count"] is None
+    assert notebook["cells"][0]["outputs"] == []
+    assert executor.calls == []
+    assert summary.saved == 1
+    assert summary.executed == 0
+
+
+def test_downloader_saves_partial_notebook_when_execution_fails(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents/course": jupyter_dir(
+            "course",
+            "course",
+            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "raise RuntimeError('boom')")],
+        )
+    }
+    executor = FakeNotebookExecutor(fail=True)
+
+    summary = JupyterCodeDownloader(
+        FakeJupyterClient(responses),
+        tmp_path,
+        "course-slug",
+        execute_lesson_notebooks=True,
+        notebook_executor=executor,
+    ).download("https://lab.example.test/tree/course")
+
+    notebook = json.loads((tmp_path / "course-slug" / "code" / "lessons" / "demo.ipynb").read_text(encoding="utf-8"))
+    assert notebook["cells"][0]["outputs"][0]["text"] == "executed\n"
+    assert summary.saved == 1
+    assert summary.failed == 0
+    assert summary.executed == 0
+    assert summary.execution_failed == 1
+    assert summary.files[0].message == "execution failed: boom"
+
+
+def test_downloader_does_not_execute_skipped_existing_notebook(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents/course": jupyter_dir(
+            "course",
+            "course",
+            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "print('new')")],
+        )
+    }
+    code_dir = tmp_path / "course-slug" / "code" / "lessons"
+    code_dir.mkdir(parents=True)
+    (code_dir / "demo.ipynb").write_text(json.dumps({"cells": [], "metadata": {}}), encoding="utf-8")
+    executor = FakeNotebookExecutor()
+
+    summary = JupyterCodeDownloader(
+        FakeJupyterClient(responses),
+        tmp_path,
+        "course-slug",
+        execute_lesson_notebooks=True,
+        notebook_executor=executor,
+    ).download("https://lab.example.test/tree/course")
+
+    assert executor.calls == []
+    assert summary.saved == 0
+    assert summary.skipped == 1
+    assert summary.executed == 0
 
 
 def test_downloader_skips_existing_file_unless_force(tmp_path):

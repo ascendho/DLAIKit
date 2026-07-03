@@ -123,6 +123,8 @@ def test_write_index_and_manifest_include_code_assets(tmp_path):
         failed=0,
         deduplicated=2,
         rewritten=1,
+        executed=1,
+        execution_failed=1,
         files=[
             CodeAssetFile("lessons/app.py", "saved", bytes=12),
             CodeAssetFile("project/README.md", "skipped"),
@@ -144,13 +146,18 @@ def test_write_index_and_manifest_include_code_assets(tmp_path):
     assert "[code](code/)" in index
     assert "Lesson code: [code/lessons](code/lessons/)" in index
     assert "Project code: [code/project](code/project/)" in index
-    assert "Saved: 1  Skipped: 1  Failed: 0  Deduplicated: 2  Rewritten: 1" in index
+    assert (
+        "Saved: 1  Skipped: 1  Failed: 0  Deduplicated: 2  Rewritten: 1  "
+        "Executed: 1  Execution Failed: 1"
+    ) in index
 
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert payload["code_assets"]["source_url"] == "https://lab.example.test/tree"
     assert payload["code_assets"]["path"] == "code"
     assert payload["code_assets"]["deduplicated"] == 2
     assert payload["code_assets"]["rewritten"] == 1
+    assert payload["code_assets"]["executed"] == 1
+    assert payload["code_assets"]["execution_failed"] == 1
     assert payload["code_assets"]["files"][0]["path"] == "lessons/app.py"
 
 

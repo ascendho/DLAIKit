@@ -14,6 +14,7 @@ CONFIG_PATH = Path("scholarium.json")
 DEFAULT_OUTPUT_ROOT = "exports"
 DEFAULT_AUTH_STATE = ".auth/deeplearning_ai.json"
 DEFAULT_BROWSER_VISIBILITY = "auto"
+DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS = 900
 BROWSER_VISIBILITY_CHOICES = {"auto", "hidden", "visible"}
 
 
@@ -46,6 +47,8 @@ def main(argv=None):
             browser_visibility=settings.browser_visibility,
             code_url=settings.code_url,
             code_token=settings.code_token,
+            execute_lesson_notebooks=settings.execute_lesson_notebooks,
+            notebook_execute_timeout_seconds=settings.notebook_execute_timeout_seconds,
             progress_callback=progress.update,
         ) as crawler:
             course_slug, index_path, results = crawler.run(settings.course_url)
@@ -76,6 +79,10 @@ def main(argv=None):
             code_counts.append("Deduplicated: {}".format(code_assets.deduplicated))
         if code_assets.rewritten:
             code_counts.append("Rewritten: {}".format(code_assets.rewritten))
+        if code_assets.executed:
+            code_counts.append("Executed: {}".format(code_assets.executed))
+        if code_assets.execution_failed:
+            code_counts.append("Execution Failed: {}".format(code_assets.execution_failed))
         print("Code: {}".format(code_assets.output_dir))
         print("Code {}".format("  ".join(code_counts)))
         for error in code_assets.errors:
@@ -112,6 +119,8 @@ class Settings:
         auth_state=DEFAULT_AUTH_STATE,
         browser_visibility=DEFAULT_BROWSER_VISIBILITY,
         force=False,
+        execute_lesson_notebooks=False,
+        notebook_execute_timeout_seconds=DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS,
     ):
         self.course_url = course_url
         self.code_url = code_url
@@ -120,6 +129,8 @@ class Settings:
         self.auth_state = auth_state
         self.browser_visibility = browser_visibility
         self.force = force
+        self.execute_lesson_notebooks = execute_lesson_notebooks
+        self.notebook_execute_timeout_seconds = notebook_execute_timeout_seconds
 
 
 def load_settings(config_path=CONFIG_PATH):
@@ -166,6 +177,13 @@ def settings_from_config(config, config_path=CONFIG_PATH):
         auth_state=_config_string(config, "auth_state", default=DEFAULT_AUTH_STATE),
         browser_visibility=browser_visibility,
         force=_config_bool(config, "force", default=False),
+        execute_lesson_notebooks=_config_bool(config, "execute_lesson_notebooks", default=False),
+        notebook_execute_timeout_seconds=_config_int(
+            config,
+            "notebook_execute_timeout_seconds",
+            default=DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS,
+            minimum=1,
+        ),
     )
 
 
@@ -182,6 +200,15 @@ def _config_bool(config, key, default=False):
     value = config.get(key, default)
     if not isinstance(value, bool):
         raise ConfigError("Config value {} must be true or false.".format(key))
+    return value
+
+
+def _config_int(config, key, default=0, minimum=None):
+    value = config.get(key, default)
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ConfigError("Config value {} must be an integer.".format(key))
+    if minimum is not None and value < minimum:
+        raise ConfigError("Config value {} must be at least {}.".format(key, minimum))
     return value
 
 

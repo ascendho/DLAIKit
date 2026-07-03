@@ -228,6 +228,10 @@ def _format_code_assets_section(code_assets):
         counts.append("Deduplicated: {}".format(code_assets.deduplicated))
     if code_assets.rewritten:
         counts.append("Rewritten: {}".format(code_assets.rewritten))
+    if code_assets.executed:
+        counts.append("Executed: {}".format(code_assets.executed))
+    if code_assets.execution_failed:
+        counts.append("Execution Failed: {}".format(code_assets.execution_failed))
     lines = [
         "## Code",
         "",
@@ -261,6 +265,8 @@ def _code_assets_payload(course_dir, code_assets):
         "failed": code_assets.failed,
         "deduplicated": code_assets.deduplicated,
         "rewritten": code_assets.rewritten,
+        "executed": code_assets.executed,
+        "execution_failed": code_assets.execution_failed,
         "errors": [_redact_url(error) for error in code_assets.errors],
         "files": [
             {

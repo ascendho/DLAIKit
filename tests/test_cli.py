@@ -63,6 +63,8 @@ def test_load_settings_from_config_file(tmp_path):
           "output_dir": "exports",
           "auth_state": ".auth/custom.json",
           "browser_visibility": "hidden",
+          "execute_lesson_notebooks": true,
+          "notebook_execute_timeout_seconds": 123,
           "force": true
         }
         """,
@@ -77,6 +79,8 @@ def test_load_settings_from_config_file(tmp_path):
     assert settings.output_dir == "exports"
     assert settings.auth_state == ".auth/custom.json"
     assert settings.browser_visibility == "hidden"
+    assert settings.execute_lesson_notebooks is True
+    assert settings.notebook_execute_timeout_seconds == 123
     assert settings.force is True
 
 
@@ -88,6 +92,8 @@ def test_settings_from_config_uses_defaults():
     assert settings.output_dir == "exports"
     assert settings.auth_state == ".auth/deeplearning_ai.json"
     assert settings.browser_visibility == "auto"
+    assert settings.execute_lesson_notebooks is False
+    assert settings.notebook_execute_timeout_seconds == 900
     assert settings.force is False
 
 
@@ -117,6 +123,26 @@ def test_settings_from_config_validates_force_bool():
             {
                 "course_url": "https://example.test/course",
                 "force": "yes",
+            }
+        )
+
+
+def test_settings_from_config_validates_execute_lesson_notebooks_bool():
+    with pytest.raises(ConfigError, match="execute_lesson_notebooks"):
+        settings_from_config(
+            {
+                "course_url": "https://example.test/course",
+                "execute_lesson_notebooks": "yes",
+            }
+        )
+
+
+def test_settings_from_config_validates_notebook_execute_timeout_seconds_int():
+    with pytest.raises(ConfigError, match="notebook_execute_timeout_seconds"):
+        settings_from_config(
+            {
+                "course_url": "https://example.test/course",
+                "notebook_execute_timeout_seconds": 0,
             }
         )
 

@@ -43,6 +43,8 @@ class TranscriptCrawler:
         browser_visibility="auto",
         code_url="",
         code_token="",
+        execute_lesson_notebooks=False,
+        notebook_execute_timeout_seconds=900,
         progress_callback=None,
     ):
         self.output_root = Path(output_root)
@@ -52,6 +54,8 @@ class TranscriptCrawler:
         self.browser_visibility = browser_visibility
         self.code_url = code_url
         self.code_token = code_token
+        self.execute_lesson_notebooks = execute_lesson_notebooks
+        self.notebook_execute_timeout_seconds = notebook_execute_timeout_seconds
         self.progress_callback = progress_callback
         self.study_pack_paths = {}
         self.code_assets_summary = None
@@ -248,6 +252,8 @@ class TranscriptCrawler:
             course_slug,
             force=self.force,
             code_token=self.code_token,
+            execute_lesson_notebooks=self.execute_lesson_notebooks,
+            notebook_execute_timeout_seconds=self.notebook_execute_timeout_seconds,
         )
         summary: CodeAssetSummary = downloader.download(self.code_url, discovered_links=lab_links or [])
         if summary.failed:

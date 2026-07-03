@@ -1,3 +1,4 @@
+import json
 import time
 from pathlib import Path
 
@@ -11,11 +12,12 @@ class LoginRequiredError(RuntimeError):
 
 
 class HttpRequestError(RuntimeError):
-    def __init__(self, url, status, status_text=""):
+    def __init__(self, url, status, status_text="", method="GET"):
         self.url = url
         self.status = status
         self.status_text = status_text
-        message = "GET {} failed with HTTP {}".format(url, status)
+        self.method = method
+        message = "{} {} failed with HTTP {}".format(method, url, status)
         if status_text:
             message = "{} {}".format(message, status_text)
         super().__init__(message)
@@ -88,6 +90,85 @@ class BrowserFetcher:
 
         self._save_auth_state()
         return payload
+
+    def post_json(self, url, payload, timeout_ms=None):
+        if self._context is None:
+            raise RuntimeError("BrowserFetcher must be used as a context manager.")
+
+        headers = {"Content-Type": "application/json"}
+        xsrf = self._xsrf_token(url)
+        if xsrf:
+            headers["X-XSRFToken"] = xsrf
+        response = self._context.request.post(
+            url,
+            data=json.dumps(payload),
+            headers=headers,
+            timeout=timeout_ms or self.timeout_ms,
+        )
+        if not response.ok:
+            try:
+                status_text = response.status_text
+            except Exception:
+                status_text = ""
+            raise HttpRequestError(url, response.status, status_text, method="POST")
+
+        try:
+            result = response.json()
+        except Exception as exc:
+            raise RuntimeError("POST {} did not return JSON.".format(url)) from exc
+
+        self._save_auth_state()
+        return result
+
+    def delete(self, url, timeout_ms=None):
+        if self._context is None:
+            raise RuntimeError("BrowserFetcher must be used as a context manager.")
+
+        headers = {}
+        xsrf = self._xsrf_token(url)
+        if xsrf:
+            headers["X-XSRFToken"] = xsrf
+        response = self._context.request.delete(
+            url,
+            headers=headers,
+            timeout=timeout_ms or self.timeout_ms,
+        )
+        if not response.ok:
+            try:
+                status_text = response.status_text
+            except Exception:
+                status_text = ""
+            raise HttpRequestError(url, response.status, status_text, method="DELETE")
+
+        self._save_auth_state()
+
+    def websocket_headers(self, url):
+        if self._context is None:
+            raise RuntimeError("BrowserFetcher must be used as a context manager.")
+
+        cookies = self._context.cookies(self._http_cookie_url(url))
+        headers = []
+        if cookies:
+            headers.append(
+                "Cookie: {}".format(
+                    "; ".join("{}={}".format(cookie["name"], cookie["value"]) for cookie in cookies)
+                )
+            )
+        xsrf = next((cookie["value"] for cookie in cookies if cookie["name"] == "_xsrf"), "")
+        if xsrf:
+            headers.append("X-XSRFToken: {}".format(xsrf))
+        return headers
+
+    def _xsrf_token(self, url):
+        cookies = self._context.cookies(self._http_cookie_url(url))
+        return next((cookie["value"] for cookie in cookies if cookie["name"] == "_xsrf"), "")
+
+    def _http_cookie_url(self, url):
+        if url.startswith("wss://"):
+            return "https://" + url[len("wss://") :]
+        if url.startswith("ws://"):
+            return "http://" + url[len("ws://") :]
+        return url
 
     def authenticate_jupyter(self, login_url, check_url):
         if self._context is None:

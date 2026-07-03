@@ -1,7 +1,10 @@
 import base64
+from datetime import datetime, timezone
 import json
 import re
 import shutil
+import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import List
@@ -40,6 +43,12 @@ class CodeDownloadError(RuntimeError):
     pass
 
 
+class NotebookExecutionError(CodeDownloadError):
+    def __init__(self, message, notebook=None):
+        self.notebook = notebook
+        super().__init__(message)
+
+
 @dataclass
 class CodeAssetFile:
     path: str
@@ -57,6 +66,8 @@ class CodeAssetSummary:
     failed: int = 0
     deduplicated: int = 0
     rewritten: int = 0
+    executed: int = 0
+    execution_failed: int = 0
     files: List[CodeAssetFile] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
 
@@ -126,16 +137,168 @@ class BrowserJupyterClient:
     def get_json(self, url):
         return self.browser_fetcher.fetch_json(url)
 
+    def post_json(self, url, payload):
+        return self.browser_fetcher.post_json(url, payload)
+
+    def delete(self, url):
+        return self.browser_fetcher.delete(url)
+
+    def websocket_headers(self, url):
+        return self.browser_fetcher.websocket_headers(url)
+
     def authenticate(self, login_url, check_url):
         return self.browser_fetcher.authenticate_jupyter(login_url, check_url)
 
 
+class JupyterNotebookExecutor:
+    def __init__(self, client, timeout_seconds=900):
+        self.client = client
+        self.timeout_seconds = timeout_seconds
+
+    def execute(self, location, notebook_path, notebook, token=None):
+        session = None
+        try:
+            session = self._create_session(location, notebook_path, notebook, token)
+            return self._execute_with_session(location, session, notebook, token)
+        except NotebookExecutionError:
+            raise
+        except Exception as exc:
+            raise NotebookExecutionError(str(exc), notebook=notebook) from exc
+        finally:
+            if session is not None:
+                self._delete_session(location, session, token)
+
+    def _create_session(self, location, notebook_path, notebook, token):
+        payload = {
+            "path": notebook_path,
+            "type": "notebook",
+            "name": PurePosixPath(notebook_path).name,
+            "kernel": {"name": _notebook_kernel_name(notebook)},
+        }
+        return self.client.post_json(_jupyter_api_url(location, "sessions", token=token), payload)
+
+    def _delete_session(self, location, session, token):
+        session_id = session.get("id")
+        if not session_id:
+            return
+        try:
+            self.client.delete(_jupyter_api_url(location, "sessions/{}".format(session_id), token=token))
+        except Exception:
+            pass
+
+    def _execute_with_session(self, location, session, notebook, token):
+        kernel = session.get("kernel") or {}
+        kernel_id = kernel.get("id")
+        session_id = session.get("id") or str(uuid.uuid4())
+        if not kernel_id:
+            raise NotebookExecutionError("Jupyter session did not include a kernel id", notebook=notebook)
+
+        ws = self._connect(location, kernel_id, session_id, token)
+        try:
+            deadline = time.time() + self.timeout_seconds
+            for cell in notebook.get("cells", []):
+                if cell.get("cell_type") != "code":
+                    continue
+                code = _cell_source_text(cell)
+                cell["outputs"] = []
+                cell["execution_count"] = None
+                if not code.strip():
+                    continue
+                self._execute_cell(ws, cell, code, session_id, deadline, notebook)
+            return notebook
+        finally:
+            try:
+                ws.close()
+            except Exception:
+                pass
+
+    def _connect(self, location, kernel_id, session_id, token):
+        try:
+            from websocket import create_connection
+        except ImportError as exc:
+            raise NotebookExecutionError(
+                "websocket-client is required to execute notebooks; install project dependencies",
+            ) from exc
+
+        url = _jupyter_kernel_channels_url(location, kernel_id, session_id, token=token)
+        headers = self.client.websocket_headers(url) if hasattr(self.client, "websocket_headers") else []
+        return create_connection(url, timeout=min(30, max(1, self.timeout_seconds)), header=headers)
+
+    def _execute_cell(self, ws, cell, code, session_id, deadline, notebook):
+        msg_id = str(uuid.uuid4())
+        request = _execute_request_message(msg_id, session_id, code)
+        ws.send(json.dumps(request))
+
+        saw_idle = False
+        saw_reply = False
+        cell_error = None
+
+        while time.time() < deadline:
+            remaining = max(1, min(30, int(deadline - time.time())))
+            try:
+                ws.settimeout(remaining)
+            except Exception:
+                pass
+            try:
+                message = json.loads(ws.recv())
+            except Exception as exc:
+                raise NotebookExecutionError(
+                    "timed out or failed while waiting for notebook execution output: {}".format(exc),
+                    notebook=notebook,
+                ) from exc
+
+            if (message.get("parent_header") or {}).get("msg_id") != msg_id:
+                continue
+
+            msg_type = (message.get("header") or {}).get("msg_type") or message.get("msg_type")
+            content = message.get("content") or {}
+
+            if msg_type == "execute_input":
+                cell["execution_count"] = content.get("execution_count")
+            elif msg_type in {"stream", "display_data", "execute_result", "error", "update_display_data"}:
+                output = _notebook_output(msg_type, content)
+                if output is not None:
+                    cell.setdefault("outputs", []).append(output)
+                if msg_type == "error":
+                    cell_error = "{}: {}".format(content.get("ename", "Error"), content.get("evalue", ""))
+            elif msg_type == "status" and content.get("execution_state") == "idle":
+                saw_idle = True
+            elif msg_type == "execute_reply":
+                saw_reply = True
+                if cell["execution_count"] is None:
+                    cell["execution_count"] = content.get("execution_count")
+                if content.get("status") == "error" and cell_error is None:
+                    cell_error = "{}: {}".format(content.get("ename", "Error"), content.get("evalue", ""))
+            elif msg_type == "input_request":
+                raise NotebookExecutionError("notebook execution requested stdin input", notebook=notebook)
+
+            if saw_idle and saw_reply:
+                if cell_error:
+                    raise NotebookExecutionError(cell_error, notebook=notebook)
+                return
+
+        raise NotebookExecutionError("notebook execution timed out", notebook=notebook)
+
+
 class JupyterCodeDownloader:
-    def __init__(self, client, output_root, course_slug, force=False, code_token=""):
+    def __init__(
+        self,
+        client,
+        output_root,
+        course_slug,
+        force=False,
+        code_token="",
+        execute_lesson_notebooks=False,
+        notebook_execute_timeout_seconds=900,
+        notebook_executor=None,
+    ):
         self.client = client
         self.output_dir = Path(output_root) / course_slug / "code"
         self.force = force
         self.code_token = code_token
+        self.execute_lesson_notebooks = execute_lesson_notebooks
+        self.notebook_execute_timeout_seconds = notebook_execute_timeout_seconds
+        self.notebook_executor = notebook_executor
 
     def download(self, code_url, discovered_links=None):
         summary = CodeAssetSummary(source_url=redact_url(code_url), output_dir=self.output_dir)
@@ -284,6 +447,7 @@ class JupyterCodeDownloader:
         try:
             if "content" not in entry or entry.get("content") is None:
                 entry = self.client.get_json(location.url_for(path, token=token))
+            message = self._maybe_execute_notebook(entry, location, path, relative_path, group, token, summary)
             data = _entry_bytes(entry)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_bytes(data)
@@ -304,8 +468,47 @@ class JupyterCodeDownloader:
                 path=asset_path,
                 status="saved",
                 bytes=len(data),
+                message=message,
             )
         )
+
+    def _maybe_execute_notebook(self, entry, location, path, relative_path, group, token, summary):
+        if not self._should_execute_notebook(entry, relative_path, group):
+            return ""
+
+        try:
+            notebook = _entry_notebook_content(entry)
+            executed = self._executor().execute(location, path, notebook, token=token)
+            entry["type"] = "notebook"
+            entry["format"] = "json"
+            entry["content"] = executed
+            summary.executed += 1
+            return "executed"
+        except NotebookExecutionError as exc:
+            if exc.notebook is not None:
+                entry["type"] = "notebook"
+                entry["format"] = "json"
+                entry["content"] = exc.notebook
+            summary.execution_failed += 1
+            return "execution failed: {}".format(redact_url(str(exc)))
+        except Exception as exc:
+            summary.execution_failed += 1
+            return "execution failed: {}".format(redact_url(str(exc)))
+
+    def _should_execute_notebook(self, entry, relative_path, group):
+        if not self.execute_lesson_notebooks:
+            return False
+        if _normalize_code_group(group) != CODE_GROUP_LESSONS:
+            return False
+        return entry.get("type") == "notebook" or PurePosixPath(relative_path).suffix == ".ipynb"
+
+    def _executor(self):
+        if self.notebook_executor is None:
+            self.notebook_executor = JupyterNotebookExecutor(
+                self.client,
+                timeout_seconds=self.notebook_execute_timeout_seconds,
+            )
+        return self.notebook_executor
 
 
 def _deduplicate_code_groups(summary):
@@ -629,6 +832,95 @@ def _is_relative_to(path, base):
         return False
 
 
+def _jupyter_api_url(location, api_path, token=None):
+    parsed = urlparse(location.base_url)
+    prefix = parsed.path.rstrip("/")
+    marker = "/api/contents"
+    if prefix.endswith(marker):
+        prefix = prefix[: -len(marker)]
+    path = "{}/api/{}".format(prefix.rstrip("/"), api_path.strip("/")) if prefix else "/api/{}".format(api_path.strip("/"))
+    return urlunparse(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            path,
+            "",
+            _query_without_content(location.query, token=token),
+            "",
+        )
+    )
+
+
+def _jupyter_kernel_channels_url(location, kernel_id, session_id, token=None):
+    parsed = urlparse(_jupyter_api_url(location, "kernels/{}/channels".format(kernel_id), token=token))
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    query.append(("session_id", session_id))
+    scheme = "wss" if parsed.scheme == "https" else "ws"
+    return urlunparse((scheme, parsed.netloc, parsed.path, "", urlencode(query), ""))
+
+
+def _notebook_kernel_name(notebook):
+    metadata = notebook.get("metadata") if isinstance(notebook, dict) else {}
+    kernelspec = metadata.get("kernelspec") if isinstance(metadata, dict) else {}
+    name = kernelspec.get("name") if isinstance(kernelspec, dict) else ""
+    return name or "python3"
+
+
+def _execute_request_message(msg_id, session_id, code):
+    now = datetime.now(timezone.utc).isoformat()
+    return {
+        "header": {
+            "msg_id": msg_id,
+            "username": "scholarium",
+            "session": session_id,
+            "date": now,
+            "msg_type": "execute_request",
+            "version": "5.3",
+        },
+        "parent_header": {},
+        "metadata": {},
+        "content": {
+            "code": code,
+            "silent": False,
+            "store_history": True,
+            "user_expressions": {},
+            "allow_stdin": False,
+            "stop_on_error": True,
+        },
+        "channel": "shell",
+    }
+
+
+def _notebook_output(msg_type, content):
+    if msg_type == "stream":
+        return {
+            "output_type": "stream",
+            "name": content.get("name", "stdout"),
+            "text": content.get("text", ""),
+        }
+    if msg_type in {"display_data", "update_display_data"}:
+        return {
+            "output_type": "display_data",
+            "data": content.get("data", {}),
+            "metadata": content.get("metadata", {}),
+        }
+    if msg_type == "execute_result":
+        return {
+            "output_type": "execute_result",
+            "execution_count": content.get("execution_count"),
+            "data": content.get("data", {}),
+            "metadata": content.get("metadata", {}),
+        }
+    if msg_type == "error":
+        return {
+            "output_type": "error",
+            "ename": content.get("ename", "Error"),
+            "evalue": content.get("evalue", ""),
+            "traceback": content.get("traceback", []),
+        }
+    return None
+
+
 def parse_jupyter_contents_location(url):
     parsed = urlparse(url)
     parts = [part for part in parsed.path.split("/") if part]
@@ -858,6 +1150,20 @@ def _entry_bytes(entry):
         return content.encode("utf-8")
 
     return (json.dumps(content, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def _entry_notebook_content(entry):
+    content = entry.get("content")
+    if isinstance(content, dict):
+        return content
+    if isinstance(content, str):
+        try:
+            notebook = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise CodeDownloadError("notebook content is not valid JSON") from exc
+        if isinstance(notebook, dict):
+            return notebook
+    raise CodeDownloadError("notebook content is missing or invalid")
 
 
 def _is_jupyter_auth_error(exc):

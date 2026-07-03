@@ -65,6 +65,8 @@ Edit `scholarium.json` in the project root:
   "output_dir": "exports",
   "auth_state": ".auth/deeplearning_ai.json",
   "browser_visibility": "auto",
+  "execute_lesson_notebooks": false,
+  "notebook_execute_timeout_seconds": 900,
   "force": false
 }
 ```
@@ -75,6 +77,15 @@ configured `code_url` is treated as the lesson lab entry; project or graded labs
 visible from course pages may also be discovered. Confirm that you are
 authorized to access and locally save the relevant content before using this
 feature.
+
+Set `"execute_lesson_notebooks": true` to save lesson notebooks with outputs.
+When enabled, Scholarium executes notebooks under `code/lessons/` in the remote
+Jupyter/Lab environment that the user is authorized to access, then saves the
+executed `.ipynb` files locally. Notebooks under `code/project/`, graded,
+assignment, or quiz materials are not executed automatically. This can take
+time and may modify the remote lab session state; if one notebook execution
+fails, the download continues and the code summary records the execution
+failure.
 
 ## Run
 

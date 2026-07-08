@@ -2,7 +2,7 @@ import json
 from base64 import b64encode
 from urllib.parse import parse_qs, urlparse
 
-from scholarium.code_assets import (
+from dlaikit.code_assets import (
     extract_jupyter_lab_links,
     JupyterCodeDownloader,
     JupyterLabLink,

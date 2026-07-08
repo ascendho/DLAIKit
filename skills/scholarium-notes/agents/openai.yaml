@@ -1,6 +1,0 @@
-interface:
-  display_name: "Scholarium Notes"
-  short_description: "Generate study notes from Scholarium exports"
-  default_prompt: "Use $scholarium-notes to generate lesson notes for a translated Scholarium export."
-policy:
-  allow_implicit_invocation: true

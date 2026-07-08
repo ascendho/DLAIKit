@@ -8,14 +8,14 @@ from pathlib import Path
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[1]
     / "skills"
-    / "scholarium-localize"
+    / "dlaikit-localize"
     / "scripts"
     / "localize_pack.py"
 )
 
 
 def load_helper():
-    spec = importlib.util.spec_from_file_location("scholarium_localize", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location("dlaikit_localize", SCRIPT_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -33,8 +33,8 @@ def run_helper(*args, cwd=None):
 
 
 def write_translated_chunks(export_dir, prefix="ZH"):
-    pending_dir = export_dir / "zh" / ".scholarium-localize" / "pending"
-    translated_dir = export_dir / "zh" / ".scholarium-localize" / "translated"
+    pending_dir = export_dir / "zh" / ".dlaikit-localize" / "pending"
+    translated_dir = export_dir / "zh" / ".dlaikit-localize" / "translated"
     translated_dir.mkdir(parents=True, exist_ok=True)
     for pending_path in sorted(pending_dir.glob("*.json")):
         payload = json.loads(pending_path.read_text(encoding="utf-8"))
@@ -125,7 +125,7 @@ def test_prepare_creates_chunks_and_copies_assets(tmp_path):
 
     assert result.returncode == 0, result.stderr
     output_dir = export_dir / "zh"
-    pending = sorted((output_dir / ".scholarium-localize" / "pending").glob("*.json"))
+    pending = sorted((output_dir / ".dlaikit-localize" / "pending").glob("*.json"))
     assert pending
     assert (output_dir / "code" / "data.csv").read_text(encoding="utf-8") == "name,value\nA,1\n"
 
@@ -154,12 +154,12 @@ def test_prepare_skips_generated_dirs_with_custom_output(tmp_path):
         "# 已翻译\n\nAlready localized output.",
         encoding="utf-8",
     )
-    (export_dir / "notes" / ".scholarium-notes").mkdir(parents=True)
+    (export_dir / "notes" / ".dlaikit-notes").mkdir(parents=True)
     (export_dir / "notes" / "01-intro.md").write_text(
         "# Note\n\nGenerated study note.",
         encoding="utf-8",
     )
-    (export_dir / "notes" / ".scholarium-notes" / "state.json").write_text(
+    (export_dir / "notes" / ".dlaikit-notes" / "state.json").write_text(
         "{}",
         encoding="utf-8",
     )
@@ -168,7 +168,7 @@ def test_prepare_skips_generated_dirs_with_custom_output(tmp_path):
     result = run_helper("prepare", str(export_dir), "--output-dir", str(output_dir), "--max-items", "50")
 
     assert result.returncode == 0, result.stderr
-    state = json.loads((output_dir / ".scholarium-localize" / "state.json").read_text(encoding="utf-8"))
+    state = json.loads((output_dir / ".dlaikit-localize" / "state.json").read_text(encoding="utf-8"))
     assert not any(path.startswith("zh/") for path in state["files"])
     assert not any(path.startswith("notes/") for path in state["files"])
     assert not (output_dir / "notes").exists()
@@ -257,13 +257,13 @@ def test_prepare_skips_unchanged_after_apply_and_requeues_changed_file(tmp_path)
 
     rerun = run_helper("prepare", str(export_dir), "--max-items", "10")
     assert rerun.returncode == 0, rerun.stderr
-    assert not list((export_dir / "zh" / ".scholarium-localize" / "pending").glob("*.json"))
+    assert not list((export_dir / "zh" / ".dlaikit-localize" / "pending").glob("*.json"))
 
     transcript = export_dir / "transcripts" / "01-intro.md"
     transcript.write_text("# Intro\n\nChanged English paragraph.", encoding="utf-8")
     changed = run_helper("prepare", str(export_dir), "--max-items", "10")
     assert changed.returncode == 0, changed.stderr
-    pending = list((export_dir / "zh" / ".scholarium-localize" / "pending").glob("*.json"))
+    pending = list((export_dir / "zh" / ".dlaikit-localize" / "pending").glob("*.json"))
     assert len(pending) == 1
     payload = json.loads(pending[0].read_text(encoding="utf-8"))
     assert [item["source_path"] for item in payload["items"]] == ["transcripts/01-intro.md"]

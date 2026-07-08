@@ -1,4 +1,4 @@
-from scholarium.text import course_slug_from_url, resolve_project_path, slugify
+from dlaikit.text import course_slug_from_url, resolve_project_path, slugify
 
 
 def test_slugify_normalizes_for_filenames():
@@ -12,8 +12,8 @@ def test_course_slug_from_url():
 
 
 def test_resolve_project_path_finds_root_from_src(tmp_path):
-    project = tmp_path / "scholarium"
-    package_dir = project / "src" / "scholarium"
+    project = tmp_path / "dlaikit"
+    package_dir = project / "src" / "dlaikit"
     package_dir.mkdir(parents=True)
     (project / "pyproject.toml").write_text("[project]\nname = 'test'\n", encoding="utf-8")
 

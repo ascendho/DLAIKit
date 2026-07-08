@@ -1,0 +1,6 @@
+interface:
+  display_name: "DLAIKit Localize"
+  short_description: "Translate DLAIKit exports with Codex"
+  default_prompt: "Use $dlaikit-localize to directly translate a DLAIKit export into Simplified Chinese."
+policy:
+  allow_implicit_invocation: true

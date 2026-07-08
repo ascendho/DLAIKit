@@ -12,7 +12,7 @@
 
 如果你是权利人，或你认为本项目、相关文档、公开仓库内容或维护者发布的材料损害了你的权利，请通过以下任一渠道联系维护者：
 
-- GitHub Issues: https://github.com/ascendho/scholarium/issues
+- GitHub Issues: https://github.com/ascendho/DLAIKit/issues
 - Email: [ascendho@outlook.com](mailto:ascendho@outlook.com)
 
 维护者会及时审查相关请求，并在合理情况下暂停公开访问、删除、调整、限制或澄清相关内容。收到通知后的下架、删除或修改是降低风险和处理争议的补救措施，不代表既往行为自动没有风险，也不构成任何侵权或违法认定。
@@ -53,7 +53,7 @@ documentation, public repository content, or materials published by the
 maintainer infringe or otherwise harm your rights, please contact the
 maintainer through either channel:
 
-- GitHub Issues: https://github.com/ascendho/scholarium/issues
+- GitHub Issues: https://github.com/ascendho/DLAIKit/issues
 - Email: [ascendho@outlook.com](mailto:ascendho@outlook.com)
 
 The maintainer will review requests promptly and, where reasonable, suspend

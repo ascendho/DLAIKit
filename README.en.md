@@ -1,6 +1,6 @@
 > 中文版本同样可用：[README.md](README.md)。
 
-# Scholarium
+# DLAIKit
 
 ![Python](https://img.shields.io/badge/python-%3E%3D3.9-blue)
 ![Playwright](https://img.shields.io/badge/browser-Playwright-2EAD33)
@@ -9,7 +9,7 @@
 ![Config](https://img.shields.io/badge/config-JSON-informational)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Scholarium is an unofficial personal study helper for organizing
+DLAIKit is an unofficial personal study helper for organizing
 DeepLearning.AI course pages that the user is already authorized to access.
 This repository does not include or redistribute any DeepLearning.AI or
 Coursera course materials; local outputs created by users are the users'
@@ -18,7 +18,7 @@ the user is logged in to and authorized to access.
 
 ## Legal and Usage Notice
 
-Scholarium is an unofficial personal study helper. It is not affiliated with,
+DLAIKit is an unofficial personal study helper. It is not affiliated with,
 endorsed by, sponsored by, or officially authorized by DeepLearning.AI or
 Coursera. Users should organize only content they are authorized to access and
 are responsible for complying with DeepLearning.AI terms, Coursera terms,
@@ -56,7 +56,7 @@ python3 -m playwright install chromium
 
 ## Configuration
 
-Edit `scholarium.json` in the project root:
+Edit `dlaikit.json` in the project root:
 
 ```json
 {
@@ -79,7 +79,7 @@ authorized to access and locally save the relevant content before using this
 feature.
 
 Set `"execute_lesson_notebooks": true` to save lesson notebooks with outputs.
-When enabled, Scholarium executes notebooks under `code/lessons/` in the remote
+When enabled, DLAIKit executes notebooks under `code/lessons/` in the remote
 Jupyter/Lab environment that the user is authorized to access, then saves the
 executed `.ipynb` files locally. Notebooks under `code/project/`, graded,
 assignment, or quiz materials are not executed automatically. This can take
@@ -90,7 +90,7 @@ failure.
 ## Run
 
 ```sh
-scholarium
+dlaikit
 ```
 
 The command generates a local study pack for course resources that are visible
@@ -108,11 +108,11 @@ directory.
 
 Recommended order:
 
-1. Run `scholarium` to create `exports/<course-slug>/`.
+1. Run `dlaikit` to create `exports/<course-slug>/`.
 2. Localize the export:
 
    ```text
-   Use the scholarium-localize skill to translate exports/<course-slug>.
+   Use the dlaikit-localize skill to translate exports/<course-slug>.
    ```
 
    Output is written to `exports/<course-slug>/zh/`. The original English export
@@ -121,7 +121,7 @@ Recommended order:
 3. Generate per-lesson study notes:
 
    ```text
-   Use the scholarium-notes skill to generate lesson notes for exports/<course-slug>.
+   Use the dlaikit-notes skill to generate lesson notes for exports/<course-slug>.
    ```
 
    Output is written to `exports/<course-slug>/notes/`, including
@@ -181,7 +181,7 @@ Playwright browser state needed to reuse an existing web login:
 On course code, project, or graded pages that the user is logged in to and
 authorized to access, the tool may use page-provided temporary lab access
 credentials to request related Jupyter/Lab resources. Only add
-`"code_token": "your Jupyter token"` to `scholarium.json`, or set
+`"code_token": "your Jupyter token"` to `dlaikit.json`, or set
 `"browser_visibility"` to `"visible"` and run the command once, when you have
 confirmed that you are authorized to access the relevant lab and the course
 page does not provide a reusable lab entry. Do not commit or publish local
@@ -190,7 +190,7 @@ files containing tokens, login state, or exported course materials.
 ## Notes
 
 - This project is intended for personal study workflows.
-- Source code lives in `src/scholarium/`, the import package directory for
+- Source code lives in `src/dlaikit/`, the import package directory for
   the standard Python `src` layout. It is not an output directory.
 - DeepLearning.AI page structure can change; parser tests use local HTML
   fixtures to keep core behavior stable.

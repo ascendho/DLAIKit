@@ -1,6 +1,0 @@
-interface:
-  display_name: "Scholarium Localize"
-  short_description: "Translate Scholarium exports with Codex"
-  default_prompt: "Use $scholarium-localize to directly translate a Scholarium export into Simplified Chinese."
-policy:
-  allow_implicit_invocation: true

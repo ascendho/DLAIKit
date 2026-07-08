@@ -705,7 +705,7 @@ def _rewrite_notebook_imports(path, group_dir, folder_name):
             {
                 "cell_type": "code",
                 "execution_count": None,
-                "id": "scholarium-shared-code-path",
+                "id": "dlaikit-shared-code-path",
                 "metadata": {},
                 "outputs": [],
                 "source": _notebook_shared_path_bootstrap(
@@ -871,7 +871,7 @@ def _execute_request_message(msg_id, session_id, code):
     return {
         "header": {
             "msg_id": msg_id,
-            "username": "scholarium",
+            "username": "dlaikit",
             "session": session_id,
             "date": now,
             "msg_type": "execute_request",
@@ -1183,7 +1183,7 @@ def _jupyter_auth_message(location):
     host = urlparse(location.base_url).netloc
     return (
         "Jupyter authentication or a live lab session is required for {}. Safari cookies "
-        "are not reused by Playwright; set code_token in scholarium.json, include "
+        "are not reused by Playwright; set code_token in dlaikit.json, include "
         "?token=... in code_url, or set browser_visibility to visible and log in in the "
         "opened browser.".format(host)
     )

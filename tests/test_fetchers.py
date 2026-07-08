@@ -1,6 +1,6 @@
 import pytest
 
-from scholarium.fetchers import BrowserFetcher, LoginRequiredError
+from dlaikit.fetchers import BrowserFetcher, LoginRequiredError
 
 
 class DummyContext:

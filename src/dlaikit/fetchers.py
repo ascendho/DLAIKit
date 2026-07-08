@@ -179,7 +179,7 @@ class BrowserFetcher:
         if self._headless:
             raise LoginRequiredError(
                 "Jupyter login is required, but the browser is hidden. Set browser_visibility "
-                "to visible in scholarium.json, or set code_token if automatic token "
+                "to visible in dlaikit.json, or set code_token if automatic token "
                 "discovery is unavailable."
             )
 
@@ -232,7 +232,7 @@ class BrowserFetcher:
                 if self._headless:
                     raise LoginRequiredError(
                         "Login is required, but the browser is hidden. Set browser_visibility "
-                        "to auto or visible in scholarium.json."
+                        "to auto or visible in dlaikit.json."
                     )
                 print("Login appears to be required.")
                 print("Complete login in the opened browser; this command will continue automatically.")
@@ -347,7 +347,7 @@ class BrowserFetcher:
 
         raise LoginRequiredError(
             "Jupyter login did not complete before the timeout. Open the code URL "
-            "with its token, or set code_token in scholarium.json."
+            "with its token, or set code_token in dlaikit.json."
         ) from last_exc
 
     def _looks_like_login_page(self, html):

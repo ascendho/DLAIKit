@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 
-STATE_DIRNAME = ".scholarium-notes"
+STATE_DIRNAME = ".dlaikit-notes"
 PENDING_DIRNAME = "pending"
 STATE_VERSION = 1
 DEFAULT_MAX_FILE_CHARS = 24000
@@ -62,7 +62,7 @@ def command_prepare(args):
 
     manifest_path = _preferred_path(export_dir, localized_dir, "manifest.json")
     if manifest_path is None:
-        raise LessonNotesError("missing manifest.json; run scholarium first")
+        raise LessonNotesError("missing manifest.json; run dlaikit first")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     state_dir = output_dir / STATE_DIRNAME
@@ -478,7 +478,7 @@ def _render_context(
     lines = [
         f"# Lesson Context: {index:02d}. {title}",
         "",
-        "<!-- scholarium-notes-context: zh-CN -->",
+        "<!-- dlaikit-notes-context: zh-CN -->",
         "",
         f"Output note: {output_dir.name}/{note_rel}",
         f"Lesson index: {index}",
@@ -747,7 +747,7 @@ def _slugify(text, fallback="note"):
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(description="Prepare and validate Scholarium lesson notes.")
+    parser = argparse.ArgumentParser(description="Prepare and validate DLAIKit lesson notes.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     prepare = subparsers.add_parser("prepare", help="Create per-lesson note context packs.")

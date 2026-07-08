@@ -1,5 +1,5 @@
-from scholarium.crawler import _code_group_for_lesson, TranscriptCrawler
-from scholarium.parser import CourseInfo, LessonInfo
+from dlaikit.crawler import _code_group_for_lesson, TranscriptCrawler
+from dlaikit.parser import CourseInfo, LessonInfo
 
 
 class FakeBrowser:

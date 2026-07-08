@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Core code lives in `src/scholarium/`. Keep parsing, fetching,
+Core code lives in `src/dlaikit/`. Keep parsing, fetching,
 crawling, writing, and CLI concerns in separate modules. Tests live in `tests/`
 and should use local HTML strings or fixtures instead of live course pages.
 Generated study packs belong under `exports/<course-slug>/`; local browser login
@@ -23,13 +23,13 @@ python3 -m playwright install chromium
 Run the extractor:
 
 ```sh
-scholarium
+dlaikit
 ```
 
 Run checks:
 
 ```sh
-python3 -m py_compile src/scholarium/*.py
+python3 -m py_compile src/dlaikit/*.py
 python3 -m pytest
 ```
 

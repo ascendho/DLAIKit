@@ -1,0 +1,6 @@
+interface:
+  display_name: "DLAIKit Notes"
+  short_description: "Generate study notes from DLAIKit exports"
+  default_prompt: "Use $dlaikit-notes to generate lesson notes for a translated DLAIKit export."
+policy:
+  allow_implicit_invocation: true

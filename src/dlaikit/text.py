@@ -42,7 +42,7 @@ def find_project_root(start=None):
     for candidate in (current, *current.parents):
         if (
             (candidate / "pyproject.toml").exists()
-            and (candidate / "src" / "scholarium").exists()
+            and (candidate / "src" / "dlaikit").exists()
         ):
             return candidate
 

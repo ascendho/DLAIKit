@@ -1,11 +1,11 @@
 ---
-name: scholarium-notes
-description: Generate comprehensive Chinese Markdown study notes for each lesson in a Scholarium export, usually after localization. Use when Codex should synthesize translated transcripts, translated Markdown, executed notebook outputs, lab/project code, and fallback untranslated materials into high-quality per-lesson notes under an export's notes/ directory.
+name: dlaikit-notes
+description: Generate comprehensive Chinese Markdown study notes for each lesson in a DLAIKit export, usually after localization. Use when Codex should synthesize translated transcripts, translated Markdown, executed notebook outputs, lab/project code, and fallback untranslated materials into high-quality per-lesson notes under an export's notes/ directory.
 ---
 
-# Scholarium Lesson Notes
+# DLAIKit Lesson Notes
 
-Use this skill after a Scholarium export has been localized when possible. Prefer
+Use this skill after a DLAIKit export has been localized when possible. Prefer
 `exports/<course-slug>/zh/` as the main source, and use untranslated files from
 `exports/<course-slug>/` only as fallback or extra context.
 
@@ -14,15 +14,15 @@ Use this skill after a Scholarium export has been localized when possible. Prefe
 1. Identify the export directory, usually `exports/<course-slug>/`.
 2. Prepare lesson context packs:
    ```sh
-   python skills/scholarium-notes/scripts/lesson_notes.py prepare exports/<course-slug>
+   python skills/dlaikit-notes/scripts/lesson_notes.py prepare exports/<course-slug>
    ```
-3. For each Markdown context under `exports/<course-slug>/notes/.scholarium-notes/pending/`, write the final note to the `Output note` path shown inside that context.
+3. For each Markdown context under `exports/<course-slug>/notes/.dlaikit-notes/pending/`, write the final note to the `Output note` path shown inside that context.
 4. Run validation:
    ```sh
-   python skills/scholarium-notes/scripts/lesson_notes.py validate exports/<course-slug>
+   python skills/dlaikit-notes/scripts/lesson_notes.py validate exports/<course-slug>
    ```
 
-The helper creates `notes/index.md`, stores state in `notes/.scholarium-notes/`,
+The helper creates `notes/index.md`, stores state in `notes/.dlaikit-notes/`,
 skips unchanged lessons that already have notes, and prepares only pending
 contexts that need writing or rewriting.
 

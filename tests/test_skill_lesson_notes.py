@@ -8,14 +8,14 @@ from pathlib import Path
 SCRIPT_PATH = (
     Path(__file__).resolve().parents[1]
     / "skills"
-    / "scholarium-notes"
+    / "dlaikit-notes"
     / "scripts"
     / "lesson_notes.py"
 )
 
 
 def load_helper():
-    spec = importlib.util.spec_from_file_location("scholarium_notes", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location("dlaikit_notes", SCRIPT_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
@@ -203,7 +203,7 @@ def make_export(tmp_path):
 def write_valid_notes(export_dir):
     helper = load_helper()
     notes_dir = export_dir / "notes"
-    for pending in sorted((notes_dir / ".scholarium-notes" / "pending").glob("*.md")):
+    for pending in sorted((notes_dir / ".dlaikit-notes" / "pending").glob("*.md")):
         output_name = pending.name
         text = "\n\n".join(
             [
@@ -221,7 +221,7 @@ def test_prepare_builds_lesson_contexts_from_translated_and_fallback_materials(t
     result = run_helper("prepare", str(export_dir))
 
     assert result.returncode == 0, result.stderr
-    pending_dir = export_dir / "notes" / ".scholarium-notes" / "pending"
+    pending_dir = export_dir / "notes" / ".dlaikit-notes" / "pending"
     pending = sorted(pending_dir.glob("*.md"))
     assert [path.name for path in pending] == [
         "01-introduction.md",
@@ -286,7 +286,7 @@ def test_prepare_skips_unchanged_notes_and_requeues_changed_lesson(tmp_path):
 
     rerun = run_helper("prepare", str(export_dir))
     assert rerun.returncode == 0, rerun.stderr
-    pending_dir = export_dir / "notes" / ".scholarium-notes" / "pending"
+    pending_dir = export_dir / "notes" / ".dlaikit-notes" / "pending"
     assert not list(pending_dir.glob("*.md"))
 
     transcript = export_dir / "zh" / "transcripts" / "01-introduction.md"

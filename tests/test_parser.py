@@ -1,4 +1,4 @@
-from scholarium.parser import (
+from dlaikit.parser import (
     clean_lines,
     extract_course_info,
     extract_lesson_data,

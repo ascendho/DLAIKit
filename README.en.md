@@ -9,6 +9,14 @@
 ![Config](https://img.shields.io/badge/config-JSON-informational)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+<p align="center">
+  <img
+    src="docs/assets/dlaikit-cover.svg"
+    alt="DLAIKit — Your courses, organized for deeper learning."
+    width="720"
+  >
+</p>
+
 DLAIKit is an unofficial personal study helper for organizing
 DeepLearning.AI course pages that the user is already authorized to access.
 This repository does not include or redistribute any DeepLearning.AI or

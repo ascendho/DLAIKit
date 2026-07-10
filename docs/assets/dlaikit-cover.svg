@@ -1,0 +1,69 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="100%"
+  height="100%"
+  viewBox="0 0 2048 1024"
+  preserveAspectRatio="xMidYMid meet"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">DLAIKit</title>
+  <desc id="description">Your courses, organized for deeper learning.</desc>
+
+  <rect width="2048" height="1024" fill="#ffffff"/>
+
+  <g fill="none" stroke="#17201d" stroke-width="2" opacity="0.035">
+    <path d="M0 214 H308 L372 150 H556"/>
+    <path d="M0 248 H226 L290 312 H472"/>
+    <path d="M2048 196 H1774 L1710 132 H1510"/>
+    <path d="M2048 236 H1846 L1780 302 H1590"/>
+    <path d="M0 802 H298 L362 866 H548"/>
+    <path d="M2048 822 H1792 L1728 886 H1512"/>
+
+    <rect x="92" y="112" width="178" height="118" rx="8"/>
+    <rect x="116" y="136" width="178" height="118" rx="8"/>
+    <rect x="1754" y="762" width="190" height="126" rx="8"/>
+    <rect x="1728" y="736" width="190" height="126" rx="8"/>
+
+    <circle cx="1772" cy="144" r="11"/>
+    <circle cx="1842" cy="112" r="11"/>
+    <circle cx="1914" cy="156" r="11"/>
+    <path d="M1783 139 L1831 117 M1853 119 L1903 150"/>
+
+    <circle cx="142" cy="830" r="11"/>
+    <circle cx="222" cy="872" r="11"/>
+    <circle cx="302" cy="826" r="11"/>
+    <path d="M153 836 L211 866 M233 866 L291 832"/>
+
+    <path d="M620 72 V160 M1428 72 V160 M620 864 V952 M1428 864 V952"/>
+    <path d="M574 116 H666 M1382 116 H1474 M574 908 H666 M1382 908 H1474"/>
+  </g>
+
+  <g fill="#0e756d" opacity="0.055">
+    <circle cx="372" cy="150" r="5"/>
+    <circle cx="1710" cy="132" r="5"/>
+    <circle cx="362" cy="866" r="5"/>
+    <circle cx="1728" cy="886" r="5"/>
+  </g>
+
+  <g
+    text-anchor="middle"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    letter-spacing="0"
+  >
+    <text x="1024" y="400" fill="#151716" font-size="172" font-weight="650">DLAIKit</text>
+
+    <rect x="988" y="447" width="72" height="5" rx="2.5" fill="#0e756d"/>
+
+    <text x="1024" y="560" fill="#252927" font-size="58" font-weight="430">
+      Your courses, organized for deeper learning.
+    </text>
+
+    <text x="1024" y="644" fill="#646a67" font-size="32" font-weight="400">
+      A local-first toolkit for export, localization,
+    </text>
+    <text x="1024" y="692" fill="#646a67" font-size="32" font-weight="400">
+      notes, and AI-assisted study.
+    </text>
+  </g>
+</svg>

@@ -9,6 +9,14 @@
 ![Config](https://img.shields.io/badge/config-JSON-informational)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+<p align="center">
+  <img
+    src="docs/assets/dlaikit-cover.svg"
+    alt="DLAIKit — Your courses, organized for deeper learning."
+    width="720"
+  >
+</p>
+
 DLAIKit 是一个非官方个人学习辅助工具，用于把用户已授权访问的 DeepLearning.AI 课程页面整理为本地学习资料。本项目仓库不包含或再分发任何 DeepLearning.AI 或 Coursera 课程材料；用户生成的本地输出由用户自行负责。工具使用 Playwright 控制本地浏览器访问用户已登录且有权访问的页面。
 
 ## Legal and Usage Notice / 使用与法律提示

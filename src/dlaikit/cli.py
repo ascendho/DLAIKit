@@ -49,6 +49,7 @@ def main(argv=None):
             code_token=settings.code_token,
             execute_lesson_notebooks=settings.execute_lesson_notebooks,
             notebook_execute_timeout_seconds=settings.notebook_execute_timeout_seconds,
+            skip_code_dirs=settings.skip_code_dirs,
             progress_callback=progress.update,
         ) as crawler:
             course_slug, index_path, results = crawler.run(settings.course_url)
@@ -121,6 +122,7 @@ class Settings:
         force=False,
         execute_lesson_notebooks=False,
         notebook_execute_timeout_seconds=DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS,
+        skip_code_dirs=None,
     ):
         self.course_url = course_url
         self.code_url = code_url
@@ -131,6 +133,7 @@ class Settings:
         self.force = force
         self.execute_lesson_notebooks = execute_lesson_notebooks
         self.notebook_execute_timeout_seconds = notebook_execute_timeout_seconds
+        self.skip_code_dirs = list(skip_code_dirs or [])
 
 
 def load_settings(config_path=CONFIG_PATH):
@@ -184,6 +187,7 @@ def settings_from_config(config, config_path=CONFIG_PATH):
             default=DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS,
             minimum=1,
         ),
+        skip_code_dirs=_config_string_list(config, "skip_code_dirs", default=[]),
     )
 
 
@@ -210,6 +214,20 @@ def _config_int(config, key, default=0, minimum=None):
     if minimum is not None and value < minimum:
         raise ConfigError("Config value {} must be at least {}.".format(key, minimum))
     return value
+
+
+def _config_string_list(config, key, default=None):
+    if key not in config:
+        return default
+    value = config.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ConfigError("Config value {} must be a list of strings.".format(key))
+    for item in value:
+        if not isinstance(item, str):
+            raise ConfigError("Config value {} must be a list of strings.".format(key))
+    return [item.strip() for item in value if item.strip()]
 
 
 def print_progress(index, total, status, title):

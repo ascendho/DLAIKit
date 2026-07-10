@@ -61,6 +61,7 @@ class CodeAssetFile:
 class CodeAssetSummary:
     source_url: str
     output_dir: Path
+    skip_dirs: List[str] = field(default_factory=list)
     saved: int = 0
     skipped: int = 0
     failed: int = 0
@@ -291,6 +292,7 @@ class JupyterCodeDownloader:
         execute_lesson_notebooks=False,
         notebook_execute_timeout_seconds=900,
         notebook_executor=None,
+        skip_code_dirs=None,
     ):
         self.client = client
         self.output_dir = Path(output_root) / course_slug / "code"
@@ -299,9 +301,14 @@ class JupyterCodeDownloader:
         self.execute_lesson_notebooks = execute_lesson_notebooks
         self.notebook_execute_timeout_seconds = notebook_execute_timeout_seconds
         self.notebook_executor = notebook_executor
+        self.skip_dirs = _normalized_names(skip_code_dirs)
 
     def download(self, code_url, discovered_links=None):
-        summary = CodeAssetSummary(source_url=redact_url(code_url), output_dir=self.output_dir)
+        summary = CodeAssetSummary(
+            source_url=redact_url(code_url),
+            output_dir=self.output_dir,
+            skip_dirs=list(self.skip_dirs),
+        )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         for source_url, token, group in self._download_sources(code_url, discovered_links or []):
@@ -408,6 +415,12 @@ class JupyterCodeDownloader:
         if _should_skip_directory(path, name):
             return
 
+        relative_path = _relative_remote_path(path, location.root_path, name)
+        matched_dir = _matching_skip_directory(relative_path, name, self.skip_dirs)
+        if matched_dir:
+            self._record_directory_skip(summary, group, relative_path, matched_dir)
+            return
+
         content = entry.get("content")
         if content is None:
             entry = self.client.get_json(location.url_for(path, token=token))
@@ -509,6 +522,16 @@ class JupyterCodeDownloader:
                 timeout_seconds=self.notebook_execute_timeout_seconds,
             )
         return self.notebook_executor
+
+    def _record_directory_skip(self, summary, group, relative_path, directory_name):
+        summary.skipped += 1
+        summary.files.append(
+            CodeAssetFile(
+                path=_asset_path(group, relative_path),
+                status="skipped",
+                message="skipped by config: {} directory".format(directory_name),
+            )
+        )
 
 
 def _deduplicate_code_groups(summary):
@@ -1074,6 +1097,20 @@ def _should_skip_directory(path, name):
 def _should_skip_file(relative_path, name):
     filename = name or PurePosixPath(relative_path).name
     return filename in SKIP_FILE_NAMES
+
+
+def _matching_skip_directory(relative_path, name, skip_dirs):
+    parts = PurePosixPath(_clean_remote_path(relative_path) or name).parts
+    return next((part for part in parts if part.lower() in skip_dirs), "")
+
+
+def _normalized_names(values):
+    names = []
+    for value in values or []:
+        name = str(value).strip().strip("/").lower()
+        if name:
+            names.append(name)
+    return sorted(set(names))
 
 
 def _host_tokens(links):

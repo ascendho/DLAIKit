@@ -118,6 +118,7 @@ def test_write_index_and_manifest_include_code_assets(tmp_path):
     code_assets = CodeAssetSummary(
         source_url="https://lab.example.test/tree",
         output_dir=tmp_path / "course" / "code",
+        skip_dirs=["models"],
         saved=1,
         skipped=1,
         failed=0,
@@ -144,6 +145,7 @@ def test_write_index_and_manifest_include_code_assets(tmp_path):
     index = index_path.read_text(encoding="utf-8")
     assert "## Code" in index
     assert "[code](code/)" in index
+    assert "Skipped directories: models" in index
     assert "Lesson code: [code/lessons](code/lessons/)" in index
     assert "Project code: [code/project](code/project/)" in index
     assert (
@@ -154,6 +156,7 @@ def test_write_index_and_manifest_include_code_assets(tmp_path):
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert payload["code_assets"]["source_url"] == "https://lab.example.test/tree"
     assert payload["code_assets"]["path"] == "code"
+    assert payload["code_assets"]["skip_dirs"] == ["models"]
     assert payload["code_assets"]["deduplicated"] == 2
     assert payload["code_assets"]["rewritten"] == 1
     assert payload["code_assets"]["executed"] == 1

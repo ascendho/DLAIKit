@@ -49,11 +49,14 @@ python3 -m playwright install chromium
   "browser_visibility": "auto",
   "execute_lesson_notebooks": true,
   "notebook_execute_timeout_seconds": 900,
-  "force": false
+  "force": false,
+  "skip_code_dirs": ["models"]
 }
 ```
 
 `course_url` 是必填项。`code_url` 可以留空；留空时只导出字幕和学习包元数据，不保存 lab 代码。配置中的 `code_url` 会作为 lesson lab 入口处理；课程页面中可见的 project 或 graded lab 也可能被发现。使用前请确认你有权访问并本地保存相关内容。
+
+`skip_code_dirs` 用于手动指定不下载的目录名。例如 `["models"]` 会跳过任意层级中名为 `models` 的目录，匹配时不区分大小写，并且不会继续读取该目录的子文件。该配置默认是空列表；DLAIKit 不会自行判断哪些课程目录应该跳过。`.git`、`.venv`、`node_modules` 和隐藏目录等技术目录仍会按内置规则排除。
 
 如果希望保存带输出的 lesson notebook，可以设置 `"execute_lesson_notebooks": true`。开启后，DLAIKit 会在用户已授权访问的远程 Jupyter/Lab 环境中执行 `code/lessons/` 下的 notebook，再把带 outputs 的 `.ipynb` 保存到本地。`code/project/`、graded、assignment 或 quiz 相关 notebook 不会自动执行。该功能可能耗时并修改远程 lab 会话状态；某个 notebook 执行失败时，程序会继续下载并在代码摘要中记录失败。
 

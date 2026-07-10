@@ -65,6 +65,7 @@ def test_load_settings_from_config_file(tmp_path):
           "browser_visibility": "hidden",
           "execute_lesson_notebooks": true,
           "notebook_execute_timeout_seconds": 123,
+          "skip_code_dirs": ["models"],
           "force": true
         }
         """,
@@ -81,6 +82,7 @@ def test_load_settings_from_config_file(tmp_path):
     assert settings.browser_visibility == "hidden"
     assert settings.execute_lesson_notebooks is True
     assert settings.notebook_execute_timeout_seconds == 123
+    assert settings.skip_code_dirs == ["models"]
     assert settings.force is True
 
 
@@ -94,6 +96,7 @@ def test_settings_from_config_uses_defaults():
     assert settings.browser_visibility == "auto"
     assert settings.execute_lesson_notebooks is False
     assert settings.notebook_execute_timeout_seconds == 900
+    assert settings.skip_code_dirs == []
     assert settings.force is False
 
 
@@ -143,6 +146,16 @@ def test_settings_from_config_validates_notebook_execute_timeout_seconds_int():
             {
                 "course_url": "https://example.test/course",
                 "notebook_execute_timeout_seconds": 0,
+            }
+        )
+
+
+def test_settings_from_config_validates_skip_code_dirs_list():
+    with pytest.raises(ConfigError, match="skip_code_dirs"):
+        settings_from_config(
+            {
+                "course_url": "https://example.test/course",
+                "skip_code_dirs": "models",
             }
         )
 

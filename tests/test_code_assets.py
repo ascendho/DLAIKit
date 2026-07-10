@@ -375,6 +375,68 @@ def test_downloader_recurses_and_saves_supported_content(tmp_path):
     assert client.requested[0] == "https://lab.example.test/api/contents/course?content=1"
 
 
+def test_downloader_keeps_model_directories_by_default(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents/course": jupyter_dir(
+            "course",
+            "course",
+            [
+                jupyter_file("README.md", "course/README.md", "notes\n"),
+                jupyter_dir(
+                    "models",
+                    "course/models",
+                    [jupyter_file("weights.bin", "course/models/weights.bin", "abc")],
+                ),
+            ],
+        )
+    }
+
+    summary = JupyterCodeDownloader(
+        FakeJupyterClient(responses),
+        tmp_path,
+        "course-slug",
+    ).download("https://lab.example.test/tree/course")
+
+    code_dir = tmp_path / "course-slug" / "code" / "lessons"
+    assert (code_dir / "README.md").exists()
+    assert (code_dir / "models" / "weights.bin").read_text(encoding="utf-8") == "abc"
+    assert summary.skip_dirs == []
+    assert summary.saved == 2
+    assert summary.skipped == 0
+
+
+def test_downloader_skips_configured_directory_names_case_insensitively(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents/course": jupyter_dir(
+            "course",
+            "course",
+            [
+                jupyter_dir(
+                    "Models",
+                    "course/nested/Models",
+                    None,
+                )
+            ],
+        )
+    }
+    client = FakeJupyterClient(responses)
+
+    summary = JupyterCodeDownloader(
+        client,
+        tmp_path,
+        "course-slug",
+        skip_code_dirs=["models"],
+    ).download("https://lab.example.test/tree/course")
+
+    assert not (tmp_path / "course-slug" / "code" / "lessons" / "nested" / "Models").exists()
+    assert summary.skip_dirs == ["models"]
+    assert summary.saved == 0
+    assert summary.skipped == 1
+    assert summary.files[0].path == "lessons/nested/Models"
+    assert summary.files[0].message == "skipped by config: Models directory"
+    assert client.requested == ["https://lab.example.test/api/contents/course?content=1"]
+
+
 def test_downloader_executes_lesson_notebooks_when_enabled(tmp_path):
     responses = {
         "https://lab.example.test/api/contents/course": jupyter_dir(

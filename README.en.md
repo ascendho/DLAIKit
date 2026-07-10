@@ -67,7 +67,8 @@ Edit `dlaikit.json` in the project root:
   "browser_visibility": "auto",
   "execute_lesson_notebooks": false,
   "notebook_execute_timeout_seconds": 900,
-  "force": false
+  "force": false,
+  "skip_code_dirs": ["models"]
 }
 ```
 
@@ -77,6 +78,13 @@ configured `code_url` is treated as the lesson lab entry; project or graded labs
 visible from course pages may also be discovered. Confirm that you are
 authorized to access and locally save the relevant content before using this
 feature.
+
+Use `skip_code_dirs` to name directories that should not be downloaded. For
+example, `["models"]` skips a directory named `models` at any depth, matches
+case-insensitively, and does not fetch that directory's children. The default
+is an empty list; DLAIKit does not decide which course directories to skip.
+Technical directories such as `.git`, `.venv`, `node_modules`, and hidden
+directories remain excluded by built-in rules.
 
 Set `"execute_lesson_notebooks": true` to save lesson notebooks with outputs.
 When enabled, DLAIKit executes notebooks under `code/lessons/` in the remote

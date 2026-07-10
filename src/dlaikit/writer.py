@@ -239,6 +239,8 @@ def _format_code_assets_section(code_assets):
         "",
         "- Directory: [{}]({}/)".format(label, label),
     ]
+    if code_assets.skip_dirs:
+        lines.append("- Skipped directories: {}".format(", ".join(code_assets.skip_dirs)))
     lines.extend(_format_code_asset_groups(code_assets))
     lines.append("- {}".format("  ".join(counts)))
     lines.extend("- Error: {}".format(_redact_url(error)) for error in code_assets.errors)
@@ -260,6 +262,7 @@ def _code_assets_payload(course_dir, code_assets):
     return {
         "source_url": _redact_url(code_assets.source_url),
         "path": _relative_path_label(code_assets.output_dir, course_dir),
+        "skip_dirs": list(code_assets.skip_dirs),
         "saved": code_assets.saved,
         "skipped": code_assets.skipped,
         "failed": code_assets.failed,

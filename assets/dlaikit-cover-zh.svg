@@ -4,14 +4,14 @@
   height="100%"
   viewBox="0 0 2048 1024"
   preserveAspectRatio="xMidYMid meet"
-  lang="en"
-  xml:lang="en"
+  lang="zh-CN"
+  xml:lang="zh-CN"
   direction="ltr"
   role="img"
   aria-labelledby="title description"
 >
   <title id="title">DLAIKit</title>
-  <desc id="description">Your courses, organized for deeper learning. A local-first toolkit for export, localization, notes and AI-assisted study.</desc>
+  <desc id="description">让课程资料井然有序，专注更深入的学习。 本地优先的课程工具包，支持导出、本地化、 学习笔记与 AI 辅助学习。</desc>
 
   <rect width="2048" height="1024" fill="#ffffff"/>
 
@@ -68,11 +68,11 @@
       x="1024"
       y="500"
       fill="#2855d9"
-      font-family="Georgia, 'Times New Roman', Times, serif"
-      font-size="82"
-      font-style="italic"
+      font-family="'Songti SC', 'Noto Serif CJK SC', SimSun, serif"
+      font-size="87"
+      font-style="normal"
       font-weight="400"
-    >Your courses, organized for deeper learning.</text>
+    >让课程资料井然有序，专注更深入的学习。</text>
 
     <text
       id="description-line-1"
@@ -80,10 +80,10 @@
       x="1024"
       y="620"
       fill="#5f6368"
-      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-family="'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
       font-size="52"
       font-weight="400"
-    >A local-first toolkit for export, localization,</text>
+    >本地优先的课程工具包，支持导出、本地化、</text>
 
     <text
       id="description-line-2"
@@ -91,9 +91,9 @@
       x="1024"
       y="682"
       fill="#5f6368"
-      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-family="'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
       font-size="52"
       font-weight="400"
-    >notes and AI-assisted study.</text>
+    >学习笔记与 AI 辅助学习。</text>
   </g>
 </svg>

@@ -13,8 +13,7 @@
   <img
     src="assets/dlaikit-cover-zh.png"
     alt="DLAIKit — 让课程资料井然有序，专注更深入的学习。"
-    width="720"
-    height="360"
+    width="100%"
   >
 </p>
 

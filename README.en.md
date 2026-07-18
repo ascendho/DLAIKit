@@ -13,8 +13,7 @@
   <img
     src="assets/dlaikit-cover.png"
     alt="DLAIKit — Your courses, organized for deeper learning."
-    width="720"
-    height="360"
+    width="100%"
   >
 </p>
 

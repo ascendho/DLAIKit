@@ -11,8 +11,8 @@
 
 <p align="center">
   <img
-    src="assets/dlaikit-cover.svg"
-    alt="DLAIKit — Your courses, organized for deeper learning."
+    src="assets/dlaikit-cover-zh.svg"
+    alt="DLAIKit — 让课程资料井然有序，专注更深入的学习。"
     width="720"
     height="360"
   >

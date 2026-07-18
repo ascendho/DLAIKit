@@ -61,8 +61,8 @@ The helper copies non-translated assets, stores state under `zh/.dlaikit-localiz
 After writing localized files:
 
 ```sh
-python3 -m py_compile src/dlaikit/*.py
-python3 -m pytest
+python -m py_compile src/dlaikit/*.py
+python -m pytest
 ```
 
 Also inspect representative localized outputs:

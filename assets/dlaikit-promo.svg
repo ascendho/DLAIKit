@@ -1,0 +1,144 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="100%"
+  height="100%"
+  viewBox="0 0 1920 1080"
+  preserveAspectRatio="xMidYMid meet"
+  lang="en"
+  xml:lang="en"
+  direction="ltr"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">DLAIKit</title>
+  <desc id="description">Your courses, organized for deeper learning. A local-first toolkit for export, localization, notes and AI-assisted study. https://github.com/ascendho/DLAIKit</desc>
+
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <g
+    fill="none"
+    stroke="#2855d9"
+    stroke-width="2"
+    stroke-linecap="round"
+    opacity="0.12"
+  >
+    <g>
+      <path d="M-90 72 C54 8 216 18 318 104 C410 182 408 296 548 354"/>
+      <path d="M-98 108 C48 44 202 52 292 128 C376 198 376 310 516 374"/>
+      <path d="M-104 144 C40 82 184 86 266 154 C342 218 344 324 484 394"/>
+      <path d="M-110 180 C34 120 168 120 240 180 C310 238 312 340 452 414"/>
+      <path d="M-116 216 C26 158 150 154 214 204 C278 258 280 354 420 434"/>
+      <path d="M-122 252 C20 196 134 188 188 230 C246 278 248 370 388 454"/>
+    </g>
+    <g transform="translate(1920 1080) scale(-1 -1)">
+      <path d="M-90 72 C54 8 216 18 318 104 C410 182 408 296 548 354"/>
+      <path d="M-98 108 C48 44 202 52 292 128 C376 198 376 310 516 374"/>
+      <path d="M-104 144 C40 82 184 86 266 154 C342 218 344 324 484 394"/>
+      <path d="M-110 180 C34 120 168 120 240 180 C310 238 312 340 452 414"/>
+      <path d="M-116 216 C26 158 150 154 214 204 C278 258 280 354 420 434"/>
+      <path d="M-122 252 C20 196 134 188 188 230 C246 278 248 370 388 454"/>
+    </g>
+  </g>
+
+  <g fill="none" stroke="#2855d9" stroke-width="1.5" opacity="0.08">
+    <path d="M1370 76 C1504 36 1650 46 1740 110 C1820 168 1860 252 1970 278"/>
+    <path d="M1412 110 C1528 76 1650 84 1728 140 C1798 190 1838 264 1958 300"/>
+    <path d="M1448 932 C1564 988 1690 992 1774 938 C1848 892 1890 826 1952 812"/>
+    <path d="M-30 798 C72 816 110 890 190 936 C278 986 394 980 508 932"/>
+  </g>
+
+  <g id="promo-logo" data-safe-logo="true" direction="ltr" unicode-bidi="isolate" transform="translate(204.4446 26.5556) scale(0.94444444)"><g xmlns="http://www.w3.org/2000/svg" id="logo-mark" transform="translate(379.28 97.7565) scale(0.360326)"><path d="M174 84H116C88 84 72 100 72 128V384C72 412 88 428 116 428H174" fill="none" stroke="#2855d9" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M338 84H396C424 84 440 100 440 128V384C440 412 424 428 396 428H338" fill="none" stroke="#202124" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M166 176H258V336H346" fill="none" stroke="#202124" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="166" cy="176" r="30" fill="#2855d9" />
+  <circle cx="258" cy="256" r="30" fill="#2855d9" />
+  <circle cx="346" cy="336" r="30" fill="#202124" />
+</g>
+    <text xmlns="http://www.w3.org/2000/svg" id="logo-wordmark" x="573.823" y="258" fill="#202124" font-family="Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="180" font-weight="700" letter-spacing="0">DLAIKit</text>
+  </g>
+
+  <g text-anchor="middle" letter-spacing="0">
+    <rect x="924" y="314" width="72" height="5" rx="2.5" fill="#2855d9"/>
+
+    <text
+      id="promo-headline"
+      data-safe-text="true"
+      x="960"
+      y="430"
+      fill="#2855d9"
+      font-family="Georgia, 'Times New Roman', Times, serif"
+      font-size="76"
+      font-style="italic"
+      font-weight="400"
+    >Your courses, organized for deeper learning.</text>
+
+    <text
+      id="promo-description-line-1"
+      data-safe-text="true"
+      x="960"
+      y="530"
+      fill="#5f6368"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-size="38"
+      font-weight="400"
+    >A local-first toolkit for export, localization,</text>
+    <text
+      id="promo-description-line-2"
+      data-safe-text="true"
+      x="960"
+      y="582"
+      fill="#5f6368"
+      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+      font-size="38"
+      font-weight="400"
+    >notes and AI-assisted study.</text>
+  </g>
+
+  <path d="M540 650 H1380" fill="none" stroke="#d9dfef" stroke-width="2"/>
+
+  <a href="https://github.com/ascendho/DLAIKit" target="_blank">
+    <rect x="570" y="700" width="220" height="220" rx="4" fill="#ffffff" stroke="#d9dfef" stroke-width="2"/>
+    <g transform="translate(590 720) scale(4.39024390)" shape-rendering="crispEdges">
+      <path id="promo-qr-modules" d="M4 4h7v1h-7zM12 4h3v1h-3zM17 4h2v1h-2zM20 4h5v1h-5zM27 4h1v1h-1zM30 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM15 5h1v1h-1zM17 5h5v1h-5zM24 5h1v1h-1zM26 5h1v1h-1zM30 5h1v1h-1zM36 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM14 6h1v1h-1zM16 6h3v1h-3zM20 6h4v1h-4zM30 6h1v1h-1zM32 6h3v1h-3zM36 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM13 7h2v1h-2zM16 7h2v1h-2zM24 7h3v1h-3zM28 7h1v1h-1zM30 7h1v1h-1zM32 7h3v1h-3zM36 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM12 8h1v1h-1zM15 8h1v1h-1zM17 8h2v1h-2zM22 8h1v1h-1zM25 8h1v1h-1zM28 8h1v1h-1zM30 8h1v1h-1zM32 8h3v1h-3zM36 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM12 9h4v1h-4zM19 9h1v1h-1zM21 9h2v1h-2zM24 9h1v1h-1zM28 9h1v1h-1zM30 9h1v1h-1zM36 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM28 10h1v1h-1zM30 10h7v1h-7zM13 11h2v1h-2zM17 11h4v1h-4zM25 11h1v1h-1zM28 11h1v1h-1zM5 12h7v1h-7zM13 12h2v1h-2zM16 12h1v1h-1zM18 12h2v1h-2zM21 12h1v1h-1zM24 12h1v1h-1zM31 12h2v1h-2zM36 12h1v1h-1zM8 13h2v1h-2zM12 13h3v1h-3zM17 13h2v1h-2zM20 13h1v1h-1zM22 13h4v1h-4zM27 13h1v1h-1zM30 13h2v1h-2zM33 13h2v1h-2zM36 13h1v1h-1zM8 14h1v1h-1zM10 14h1v1h-1zM14 14h1v1h-1zM17 14h3v1h-3zM22 14h1v1h-1zM24 14h2v1h-2zM28 14h1v1h-1zM32 14h1v1h-1zM34 14h2v1h-2zM5 15h2v1h-2zM9 15h1v1h-1zM11 15h3v1h-3zM18 15h1v1h-1zM20 15h1v1h-1zM25 15h2v1h-2zM28 15h2v1h-2zM32 15h3v1h-3zM4 16h2v1h-2zM8 16h3v1h-3zM12 16h1v1h-1zM14 16h3v1h-3zM18 16h2v1h-2zM22 16h1v1h-1zM25 16h1v1h-1zM27 16h3v1h-3zM31 16h1v1h-1zM33 16h1v1h-1zM35 16h1v1h-1zM5 17h2v1h-2zM8 17h2v1h-2zM11 17h3v1h-3zM17 17h2v1h-2zM24 17h1v1h-1zM26 17h1v1h-1zM28 17h1v1h-1zM35 17h2v1h-2zM5 18h1v1h-1zM7 18h2v1h-2zM10 18h1v1h-1zM12 18h2v1h-2zM16 18h3v1h-3zM21 18h1v1h-1zM23 18h1v1h-1zM26 18h1v1h-1zM28 18h4v1h-4zM34 18h2v1h-2zM4 19h2v1h-2zM8 19h2v1h-2zM18 19h1v1h-1zM20 19h1v1h-1zM22 19h4v1h-4zM29 19h2v1h-2zM32 19h3v1h-3zM4 20h1v1h-1zM6 20h2v1h-2zM9 20h6v1h-6zM16 20h2v1h-2zM20 20h4v1h-4zM26 20h1v1h-1zM28 20h2v1h-2zM31 20h2v1h-2zM36 20h1v1h-1zM5 21h1v1h-1zM7 21h3v1h-3zM13 21h1v1h-1zM15 21h4v1h-4zM22 21h3v1h-3zM27 21h1v1h-1zM30 21h2v1h-2zM33 21h2v1h-2zM36 21h1v1h-1zM5 22h3v1h-3zM10 22h3v1h-3zM15 22h1v1h-1zM17 22h1v1h-1zM19 22h1v1h-1zM21 22h1v1h-1zM24 22h1v1h-1zM26 22h1v1h-1zM28 22h1v1h-1zM30 22h3v1h-3zM34 22h2v1h-2zM4 23h4v1h-4zM9 23h1v1h-1zM11 23h4v1h-4zM16 23h1v1h-1zM18 23h3v1h-3zM22 23h3v1h-3zM29 23h1v1h-1zM31 23h4v1h-4zM36 23h1v1h-1zM6 24h1v1h-1zM9 24h4v1h-4zM14 24h1v1h-1zM18 24h3v1h-3zM23 24h4v1h-4zM29 24h1v1h-1zM31 24h1v1h-1zM33 24h1v1h-1zM35 24h2v1h-2zM4 25h1v1h-1zM7 25h2v1h-2zM11 25h1v1h-1zM14 25h1v1h-1zM16 25h1v1h-1zM18 25h2v1h-2zM21 25h2v1h-2zM25 25h1v1h-1zM27 25h1v1h-1zM33 25h1v1h-1zM36 25h1v1h-1zM4 26h1v1h-1zM6 26h2v1h-2zM10 26h1v1h-1zM12 26h2v1h-2zM17 26h1v1h-1zM20 26h1v1h-1zM22 26h1v1h-1zM24 26h1v1h-1zM29 26h1v1h-1zM31 26h1v1h-1zM33 26h1v1h-1zM35 26h1v1h-1zM4 27h1v1h-1zM6 27h2v1h-2zM18 27h2v1h-2zM21 27h1v1h-1zM25 27h2v1h-2zM28 27h3v1h-3zM34 27h3v1h-3zM4 28h1v1h-1zM8 28h5v1h-5zM14 28h1v1h-1zM19 28h2v1h-2zM22 28h1v1h-1zM26 28h7v1h-7zM12 29h1v1h-1zM14 29h2v1h-2zM17 29h1v1h-1zM20 29h1v1h-1zM23 29h1v1h-1zM25 29h1v1h-1zM27 29h2v1h-2zM32 29h1v1h-1zM34 29h1v1h-1zM36 29h1v1h-1zM4 30h7v1h-7zM12 30h5v1h-5zM21 30h1v1h-1zM24 30h2v1h-2zM27 30h2v1h-2zM30 30h1v1h-1zM32 30h1v1h-1zM34 30h2v1h-2zM4 31h1v1h-1zM10 31h1v1h-1zM12 31h2v1h-2zM16 31h3v1h-3zM21 31h2v1h-2zM24 31h5v1h-5zM32 31h4v1h-4zM4 32h1v1h-1zM6 32h3v1h-3zM10 32h1v1h-1zM12 32h3v1h-3zM17 32h2v1h-2zM20 32h4v1h-4zM25 32h1v1h-1zM28 32h6v1h-6zM35 32h1v1h-1zM4 33h1v1h-1zM6 33h3v1h-3zM10 33h1v1h-1zM12 33h1v1h-1zM14 33h2v1h-2zM17 33h1v1h-1zM21 33h1v1h-1zM24 33h1v1h-1zM26 33h4v1h-4zM32 33h2v1h-2zM36 33h1v1h-1zM4 34h1v1h-1zM6 34h3v1h-3zM10 34h1v1h-1zM12 34h1v1h-1zM16 34h1v1h-1zM18 34h3v1h-3zM22 34h2v1h-2zM26 34h1v1h-1zM30 34h2v1h-2zM33 34h1v1h-1zM4 35h1v1h-1zM10 35h1v1h-1zM12 35h1v1h-1zM14 35h2v1h-2zM18 35h1v1h-1zM20 35h1v1h-1zM23 35h4v1h-4zM30 35h1v1h-1zM32 35h3v1h-3zM4 36h7v1h-7zM13 36h2v1h-2zM17 36h1v1h-1zM19 36h3v1h-3zM23 36h1v1h-1zM26 36h6v1h-6zM34 36h2v1h-2z" fill="#202124"/>
+    </g>
+    <g letter-spacing="0">
+      <text
+        id="promo-cta"
+        data-safe-text="true"
+        x="840"
+        y="780"
+        fill="#5f6368"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="28"
+        font-weight="500"
+        text-anchor="start"
+      >View the project</text>
+      <text
+        id="promo-project-url"
+        data-safe-text="true"
+        x="840"
+        y="835"
+        fill="#2855d9"
+        font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+        font-size="28"
+        font-weight="500"
+        text-anchor="start"
+        direction="ltr"
+        unicode-bidi="isolate"
+      >github.com/ascendho/DLAIKit</text>
+    </g>
+  </a>
+
+  <text
+    id="promo-notice"
+    data-safe-text="true"
+    x="960"
+    y="970"
+    text-anchor="middle"
+    letter-spacing="0"
+    fill="#72767d"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="22"
+    font-weight="400"
+  >Unofficial personal study tool · Authorized content only</text>
+</svg>

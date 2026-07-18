@@ -11,3 +11,9 @@ exports/
 outputs/
 ROADMAP.md
 dlaikit.json
+
+# Locally generated project artwork
+assets/dlaikit-cover.json
+assets/dlaikit-logo-*.png
+assets/dlaikit-promo*.png
+assets/dlaikit-social-preview*.png

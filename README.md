@@ -19,7 +19,7 @@
 
 DLAIKit 是一个非官方个人学习辅助工具，用于把用户已授权访问的 DeepLearning.AI 课程页面整理为本地学习资料。本项目仓库不包含或再分发任何 DeepLearning.AI 或 Coursera 课程材料；用户生成的本地输出由用户自行负责。工具使用 Playwright 控制本地浏览器访问用户已登录且有权访问的页面。
 
-## Legal and Usage Notice / 使用与法律提示
+## 使用与法律提示
 
 DLAIKit 是非官方个人学习辅助工具，不隶属于 DeepLearning.AI 或 Coursera，也未获得其官方认可、赞助或授权。使用者应只整理自己有权访问的内容，并自行遵守 DeepLearning.AI、Coursera、课程平台、实验环境提供方的条款以及适用法律。请勿使用本项目绕过付费墙、登录限制、访问控制或平台使用限制，也不要在没有授权的情况下公开发布、分享、出售或再分发导出的字幕、notebook、lab、quiz、assignment、solution 或其他课程资料。
 
@@ -29,8 +29,8 @@ DLAIKit 是非官方个人学习辅助工具，不隶属于 DeepLearning.AI 或 
 
 - 从用户已登录且有权访问的课程主页发现 lesson 列表。
 - 为本地个人学习保存 lesson 字幕 Markdown。
-- 自动生成完整学习包：`index.md`、`course-overview.md`、`resources.md`、`manifest.json`。
-- 在用户显式配置 Jupyter/Lab 链接时，保存可访问的 lesson 代码到本地。
+- 生成最小 `manifest.json`，记录官网来源和提取状态。
+- 从课程页面自动发现 Jupyter/Lab 入口并保存可访问的代码到本地。
 - 可在用户已登录并有权访问的课程 code、project 或 graded 页面范围内使用页面提供的临时 lab 访问凭据。
 - 复用 `.auth/deeplearning_ai.json` 中保存的本地 Playwright 登录态。
 
@@ -51,55 +51,39 @@ python3 -m playwright install chromium
 ```json
 {
   "course_url": "https://www.deeplearning.ai/courses/building-code-agents-with-hugging-face-smolagents",
-  "code_url": "https://s172-29-126-86p8888.lab-aws-production.deeplearning.ai/tree",
+  "code_url": "",
   "output_dir": "exports",
   "auth_state": ".auth/deeplearning_ai.json",
+  "browser_channel": "chrome",
+  "browser_profile_dir": ".auth/chrome-profile",
   "browser_visibility": "auto",
-  "execute_lesson_notebooks": true,
-  "notebook_execute_timeout_seconds": 900,
   "force": false,
   "skip_code_dirs": ["models"]
 }
 ```
 
-`course_url` 是必填项。`code_url` 可以留空；留空时只导出字幕和学习包元数据，不保存 lab 代码。配置中的 `code_url` 会作为 lesson lab 入口处理；课程页面中可见的 project 或 graded lab 也可能被发现。使用前请确认你有权访问并本地保存相关内容。
+`course_url` 是必填项。DLAIKit 会从 code、project 或 graded lesson 页面自动发现当前可用的 Jupyter/Lab 入口并下载代码；`code_url` 可以留空，只在自动发现失败时作为手工后备入口使用。临时 lab 地址可能过期，不建议长期把旧地址保留在配置中。使用前请确认你有权访问并本地保存相关内容。
+
+`browser_channel` 设为 `"chrome"` 时使用本机 Google Chrome；`browser_profile_dir` 是仅供本项目使用的独立浏览器资料目录，不会占用或修改日常 Chrome profile。默认的 `"chromium"` 仍可用于没有安装 Google Chrome 的环境。
 
 `skip_code_dirs` 用于手动指定不下载的目录名。例如 `["models"]` 会跳过任意层级中名为 `models` 的目录，匹配时不区分大小写，并且不会继续读取该目录的子文件。该配置默认是空列表；DLAIKit 不会自行判断哪些课程目录应该跳过。`.git`、`.venv`、`node_modules` 和隐藏目录等技术目录仍会按内置规则排除。
 
-如果希望保存带输出的 lesson notebook，可以设置 `"execute_lesson_notebooks": true`。开启后，DLAIKit 会在用户已授权访问的远程 Jupyter/Lab 环境中执行 `code/lessons/` 下的 notebook，再把带 outputs 的 `.ipynb` 保存到本地。`code/project/`、graded、assignment 或 quiz 相关 notebook 不会自动执行。该功能可能耗时并修改远程 lab 会话状态；某个 notebook 执行失败时，程序会继续下载并在代码摘要中记录失败。
+下载的 `.ipynb` 会按 Jupyter/Lab 返回的原始内容保存。DLAIKit 不会启动远程 kernel、执行 notebook 或修改远程 lab 会话。
 
 ## 运行
 
+每次新开终端后，先进入项目根目录并激活虚拟环境，再运行命令：
+
 ```sh
+cd /path/to/dlai-transcript-extractor
+. .venv/bin/activate
 dlaikit
 ```
 
-程序会为你已登录且有权访问的可见课程资源生成本地学习包，不需要额外参数。首次需要登录时，命令可能会打开一个浏览器窗口。你在浏览器里完成登录后，程序会自动继续运行。之后再次运行会复用保存的登录态，并默认在后台运行。
+如果不想激活虚拟环境，也可以在项目根目录直接运行 `./.venv/bin/dlaikit`。
+出现 `zsh: command not found: dlaikit` 通常表示当前终端还没有激活 `.venv`。
 
-## AI Skills 后处理工作流
-
-本仓库包含两个 Codex skills，用于在导出完成后继续整理本地学习资料。普通使用时不需要手动调用内部 helper 脚本，直接在 Codex 中用自然语言指定 skill 和导出目录即可。
-
-推荐顺序：
-
-1. 先运行 `dlaikit` 生成 `exports/<course-slug>/`。
-2. 翻译导出内容：
-
-   ```text
-   请使用 dlaikit-localize skill，翻译 exports/<course-slug>
-   ```
-
-   输出会写入 `exports/<course-slug>/zh/`。原始英文导出不会被覆盖。
-
-3. 生成每课学习笔记：
-
-   ```text
-   请使用 dlaikit-notes skill，为 exports/<course-slug> 生成每课学习笔记
-   ```
-
-   输出会写入 `exports/<course-slug>/notes/`，并生成 `notes/index.md`。
-
-这些 skills 内部会使用 helper 脚本进行分块、断点续跑、跳过未变化文件和结果校验；这些脚本是实现细节，主要面向自动化和调试。生成的翻译、笔记和代码资料仍属于本地个人学习输出，请不要提交到公开仓库或再分发。
+程序会为你已登录且有权访问的课程资源生成干净的本地导出，不需要额外参数。使用专用 Chrome profile 时，首次运行或登录失效后会打开 Google Chrome；在这个窗口完成登录，程序会自动继续。之后再次运行会复用该 profile，并默认在后台运行。
 
 ## 导出结构
 
@@ -107,37 +91,36 @@ dlaikit
 
 ```text
 exports/<course-slug>/
-  index.md
   transcripts/
     01-<lesson-slug>.md
   code/
     lessons/
     project/
-  course-overview.md
-  resources.md
   manifest.json
 ```
 
-- `index.md`：lesson 索引、处理状态和本地代码保存摘要。
-- `transcripts/`：逐课字幕 Markdown。
-- `code/`：在配置 Jupyter/Lab 链接后保存到本地的可访问代码和资料。
-- `code/lessons/`：来自配置的 `code_url` 或普通 code lesson 页面的 lesson 代码。
+- `transcripts/`：官网逐课字幕正文，并附最小标题和来源链接。
+- `code/`：从自动发现或手工后备的 Jupyter/Lab 入口保存到本地的可访问代码和资料。
+- `code/lessons/`：来自普通 code lesson 页面或后备 `code_url` 的 lesson 代码。
 - `code/project/`：来自 project、graded 或 assignment 页面中可见 lab 入口的项目代码；未发现时不会生成内容。
-- `course-overview.md`：课程摘要、学习目标、讲师、lesson 类型和时长。
-- `resources.md`：代码示例、测验或作业页面，以及页面中可见的资源链接。
-- `manifest.json`：结构化课程、lesson、资源和处理结果数据。
+- `manifest.json`：最小来源与处理状态清单，不包含课程摘要、学习目标或讲师归纳。
 
-`metadata` 表示该课程项没有生成单独的字幕 Markdown 文件，只记录在 `index.md` 和 `manifest.json` 中。代码示例、测验或作业页面如果没有可见字幕，会标记为 `metadata`，而不是 `failed`。
+`no_transcript` 表示程序检查官网页面后确认该课程项没有字幕。课程类型不会用于提前排除字幕，因此同时包含视频和代码示例的 lesson 仍会正常导出 transcript；没有字幕的代码示例、测验、作业和参考页面只记录在 `manifest.json`，也不会因此导致命令失败。
+
+下载器保留 Jupyter/Lab 返回的相对目录和文件内容，不会去重、移动共享目录或改写 Python/Notebook 引用。同一 Lab 同时出现在普通 lesson 和 project 页面时只保存一份，并归入 `code/project/`。下载断点状态保存在 `.auth/code-downloads/`，不会混入课程代码目录。
 
 ## 登录态
 
-工具不会保存用户名或密码，只保存复用网页登录所需的本地 Playwright 浏览器状态：
+工具不会保存用户名或密码，只在 `.auth/` 下保存复用网页登录所需的项目专用 Chrome profile 和兼容用 Playwright 状态：
 
 ```text
+.auth/chrome-profile/
 .auth/deeplearning_ai.json
 ```
 
-在用户已登录且有权访问的课程 code、project 或 graded 页面中，工具可能使用页面正常提供的临时 lab 访问凭据来请求相关 Jupyter/Lab 资源。只有你确认自己有权访问相关 lab，且课程页面没有提供可复用的 lab 入口时，才应在项目根目录的 `dlaikit.json` 中添加 `"code_token": "你的 Jupyter token"`，或把 `"browser_visibility"` 改为 `"visible"` 后重新运行一次。不要提交或公开包含 token、登录态或导出课程资料的本地文件。
+Safari 的 Cookie 不能直接复用到 Playwright。请在项目打开的专用 Chrome 窗口中登录一次；如果服务端使登录过期或更换临时 lab 主机，程序会再次打开该窗口。只有你确认自己有权访问相关 lab，且课程页面没有提供可用入口时，才应添加 `"code_token": "你的 Jupyter token"` 或当前 `code_url`。不要提交或公开包含 token、登录态或导出课程资料的本地文件。
+
+如果登录后的页面仍显示 `Start Learning`，但已经出现 `Show Transcript`、`Hide Transcript` 或课程 Lab，工具会以课程内容为准并继续抓取。临时断网会自动重试；重试后仍无法连接时，命令会中止并返回非零退出码，避免把剩余所有课节逐一误报为失败。
 
 ## 说明
 

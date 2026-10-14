@@ -44,10 +44,9 @@ maintainer through GitHub Issues or [ascendho@outlook.com](mailto:ascendho@outlo
 
 - Discover lessons from course pages the user is logged in to and authorized to access.
 - Save lesson transcript Markdown for local personal study.
-- Always generate the full study pack: `index.md`, `course-overview.md`,
-  `resources.md`, and `manifest.json`.
-- Save accessible lesson code locally when the user explicitly configures a
-  Jupyter/Lab link.
+- Generate a minimal `manifest.json` containing source provenance and extraction status.
+- Discover Jupyter/Lab entries from course pages and save accessible code
+  locally.
 - Use page-provided temporary lab access credentials only within course code,
   project, or graded pages that the user is logged in to and authorized to access.
 - Reuse local Playwright login state from `.auth/deeplearning_ai.json`.
@@ -69,23 +68,28 @@ Edit `dlaikit.json` in the project root:
 ```json
 {
   "course_url": "https://www.deeplearning.ai/courses/building-coding-agents-with-tool-execution",
-  "code_url": "https://...lab-aws-production.deeplearning.ai/tree",
+  "code_url": "",
   "output_dir": "exports",
   "auth_state": ".auth/deeplearning_ai.json",
+  "browser_channel": "chrome",
+  "browser_profile_dir": ".auth/chrome-profile",
   "browser_visibility": "auto",
-  "execute_lesson_notebooks": false,
-  "notebook_execute_timeout_seconds": 900,
   "force": false,
   "skip_code_dirs": ["models"]
 }
 ```
 
-`course_url` is required. `code_url` may be empty; when it is empty, the tool
-exports transcripts and study-pack metadata without saving lab code. The
-configured `code_url` is treated as the lesson lab entry; project or graded labs
-visible from course pages may also be discovered. Confirm that you are
-authorized to access and locally save the relevant content before using this
-feature.
+`course_url` is required. DLAIKit automatically discovers current Jupyter/Lab
+entries from code, project, and graded lesson pages and downloads accessible
+code. `code_url` may remain empty and is only a manual fallback when discovery
+fails. Temporary lab URLs can expire and should not be kept in configuration
+indefinitely. Confirm that you are authorized to access and locally save the
+relevant content before using this feature.
+
+Set `browser_channel` to `"chrome"` to use the installed Google Chrome.
+`browser_profile_dir` is a dedicated profile for this project and does not use
+or modify your everyday Chrome profile. The default `"chromium"` remains
+available on systems without Google Chrome.
 
 Use `skip_code_dirs` to name directories that should not be downloaded. For
 example, `["models"]` skips a directory named `models` at any depth, matches
@@ -94,60 +98,31 @@ is an empty list; DLAIKit does not decide which course directories to skip.
 Technical directories such as `.git`, `.venv`, `node_modules`, and hidden
 directories remain excluded by built-in rules.
 
-Set `"execute_lesson_notebooks": true` to save lesson notebooks with outputs.
-When enabled, DLAIKit executes notebooks under `code/lessons/` in the remote
-Jupyter/Lab environment that the user is authorized to access, then saves the
-executed `.ipynb` files locally. Notebooks under `code/project/`, graded,
-assignment, or quiz materials are not executed automatically. This can take
-time and may modify the remote lab session state; if one notebook execution
-fails, the download continues and the code summary records the execution
-failure.
+Downloaded `.ipynb` files are saved exactly as returned by Jupyter/Lab. DLAIKit
+does not start remote kernels, execute notebooks, or modify the remote lab
+session.
 
 ## Run
 
+In each new terminal session, enter the project root and activate the virtual
+environment before running the command:
+
 ```sh
+cd /path/to/dlai-transcript-extractor
+. .venv/bin/activate
 dlaikit
 ```
 
-The command generates a local study pack for course resources that are visible
+Alternatively, run `./.venv/bin/dlaikit` directly from the project root without
+activating the virtual environment. A `zsh: command not found: dlaikit` error
+usually means that `.venv` is not active in the current terminal.
+
+The command generates a clean local export of course resources that are visible
 to your authenticated browser and that you are authorized to access. No extra
-arguments are needed. The first authenticated run may open a browser window.
-Complete login in that browser, and the command will continue automatically.
-Later runs reuse the saved login state and run in the background by default.
-
-## AI Skills Post-Processing Workflow
-
-This repository includes two Codex skills for post-processing local study-pack
-exports. In normal use, you do not need to run the internal helper scripts
-directly. Ask Codex in natural language and include the skill name and export
-directory.
-
-Recommended order:
-
-1. Run `dlaikit` to create `exports/<course-slug>/`.
-2. Localize the export:
-
-   ```text
-   Use the dlaikit-localize skill to translate exports/<course-slug>.
-   ```
-
-   Output is written to `exports/<course-slug>/zh/`. The original English export
-   is preserved.
-
-3. Generate per-lesson study notes:
-
-   ```text
-   Use the dlaikit-notes skill to generate lesson notes for exports/<course-slug>.
-   ```
-
-   Output is written to `exports/<course-slug>/notes/`, including
-   `notes/index.md`.
-
-The skills internally use helper scripts for chunking, resumability,
-unchanged-file skipping, and validation. Those scripts are implementation
-details for automation and debugging. Generated translations, notes, and code
-materials remain local personal-study outputs; do not commit them to public
-repositories or redistribute them.
+arguments are needed. With a dedicated Chrome profile, the first run or an
+expired login opens Google Chrome. Complete login there and the command
+continues automatically. Later runs reuse the profile and run in the background
+by default.
 
 ## Export Structure
 
@@ -155,53 +130,61 @@ By default, files are exported under `exports/` in the project root:
 
 ```text
 exports/<course-slug>/
-  index.md
   transcripts/
     01-<lesson-slug>.md
   code/
     lessons/
     project/
-  course-overview.md
-  resources.md
   manifest.json
 ```
 
-- `index.md`: lesson index, processing status, and local code-save summary.
-- `transcripts/`: per-lesson transcript Markdown files.
-- `code/`: accessible code and materials saved locally after a Jupyter/Lab link
-  is configured.
-- `code/lessons/`: lesson code from the configured `code_url` or regular code
-  lesson pages.
+- `transcripts/`: official per-lesson transcript text with only a minimal title
+  and source wrapper.
+- `code/`: accessible code and materials saved from an automatically discovered
+  or manually configured fallback Jupyter/Lab entry.
+- `code/lessons/`: lesson code from regular code lesson pages or a fallback
+  `code_url`.
 - `code/project/`: project code from lab entries visible on project, graded, or
   assignment pages; it remains empty when no project lab is found.
-- `course-overview.md`: course summary, learning objectives, instructors,
-  lesson types, and durations.
-- `resources.md`: code examples, quiz or assignment pages, and visible resource
-  links.
-- `manifest.json`: structured course, lesson, resource, and processing result data.
+- `manifest.json`: minimal source provenance and processing status, without
+  generated course summaries, objectives, or instructor lists.
 
-`metadata` means the course item did not produce a standalone transcript
-Markdown file. It is recorded in `index.md` and `manifest.json` instead. Code
-examples, quizzes, or assignments without visible transcripts are marked as
-`metadata`, not `failed`.
+`no_transcript` means the extractor inspected the official page and found no
+transcript. Lesson type never excludes transcript extraction up front, so a
+video with a code example is still exported normally. Code examples, quizzes,
+assignments, and reference pages without transcripts are recorded only in
+`manifest.json`; controls and modal text are never saved as transcripts, and
+this status does not make the command fail.
+
+The downloader preserves the relative paths and file contents returned by
+Jupyter/Lab. It does not deduplicate directories, move shared code, or rewrite
+Python/Notebook references. If one Lab appears on both a regular lesson and a
+project page, it is saved once under `code/project/`. Download state is stored
+under `.auth/code-downloads/`, outside the exported course code.
 
 ## Authentication
 
-The extractor does not store usernames or passwords. It stores only the local
-Playwright browser state needed to reuse an existing web login:
+The extractor does not store usernames or passwords. Under `.auth/`, it stores
+a project-only Chrome profile plus a compatibility Playwright state file:
 
 ```text
+.auth/chrome-profile/
 .auth/deeplearning_ai.json
 ```
 
-On course code, project, or graded pages that the user is logged in to and
-authorized to access, the tool may use page-provided temporary lab access
-credentials to request related Jupyter/Lab resources. Only add
-`"code_token": "your Jupyter token"` to `dlaikit.json`, or set
-`"browser_visibility"` to `"visible"` and run the command once, when you have
-confirmed that you are authorized to access the relevant lab and the course
-page does not provide a reusable lab entry. Do not commit or publish local
-files containing tokens, login state, or exported course materials.
+Safari cookies cannot be reused by Playwright. Sign in once in the dedicated
+Chrome window opened by the project. If the server expires the login or changes
+the temporary lab host, the tool opens that profile again. Only add
+`"code_token": "your Jupyter token"` or a current `code_url` after confirming
+that you are authorized to access the lab and the course page exposes no usable
+entry. Do not commit or publish local files containing tokens, login state, or
+exported course materials.
+
+If `Start Learning` remains visible after sign-in but `Show Transcript`, `Hide
+Transcript`, or a course lab is present, the extractor treats the course content
+as authoritative and continues. Temporary network failures are retried; if the
+connection still fails, the command stops with a non-zero exit code instead of
+reporting every remaining lesson as a separate failure.
 
 ## Notes
 

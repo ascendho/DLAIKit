@@ -4,6 +4,7 @@ from dlaikit.parser import (
     extract_lesson_data,
     extract_resource_links,
     extract_transcript_from_lines,
+    extract_transcript_from_soup,
     find_lesson_links,
 )
 
@@ -56,6 +57,60 @@ def test_extract_lesson_data_returns_title_and_transcript():
 
     assert title == "Introduction"
     assert "tool execution workflow" in transcript
+
+
+def test_extract_transcript_rejects_restore_version_modal_text():
+    html = """
+    <html><body>
+      <h1>Code lesson</h1>
+      <p>Restoring the original version will permanently remove all of your changes.</p>
+      <button>Show Transcript</button>
+    </body></html>
+    """
+
+    _, transcript = extract_lesson_data(html)
+
+    assert transcript == ""
+
+
+def test_extract_transcript_prefers_official_hidden_container_over_modal():
+    html = """
+    <html><body>
+      <div class="drawer-content overflow-scroll">
+        <div class="hidden">
+          What if your assistant could learn something new? This is the complete
+          official transcript from a video with a code example.
+        </div>
+        <div class="hidden">course detail</div>
+        <main>
+          <div class="relative flex-1 hidden md:block" data-panel="">
+            Restoring the original version will permanently remove all changes.
+          </div>
+        </main>
+      </div>
+    </body></html>
+    """
+    lines, soup = clean_lines(html)
+
+    transcript = extract_transcript_from_soup(soup)
+    _, lesson_transcript = extract_lesson_data(html)
+
+    assert "complete official transcript" in transcript
+    assert lesson_transcript == transcript
+    assert "permanently remove" not in transcript
+    assert extract_transcript_from_lines(lines) == ""
+
+
+def test_extract_transcript_ignores_empty_hidden_container():
+    html = """
+    <div class="drawer-content overflow-scroll">
+      <div class="hidden"></div>
+      <div class="hidden">course detail</div>
+    </div>
+    """
+    _, soup = clean_lines(html)
+
+    assert extract_transcript_from_soup(soup) == ""
 
 
 def test_extract_course_info_from_public_course_page():
@@ -125,6 +180,22 @@ def test_extract_course_info_from_public_course_page():
     assert [lesson.kind for lesson in course.lessons] == ["video", "code", "assignment"]
     assert course.lessons[1].duration == "12m"
     assert course.resources[0].kind == "repository"
+
+
+def test_extract_course_info_classifies_glossary_as_reference():
+    html = """
+    <html><body>
+      <h1>Course</h1>
+      <a href="https://learn.deeplearning.ai/courses/course/lesson/glossary-id/glossary">
+        <h3>[Optional] Glossary</h3>
+        <span>1m</span>
+      </a>
+    </body></html>
+    """
+
+    course = extract_course_info(html, "https://www.deeplearning.ai/courses/course")
+
+    assert course.lessons[0].kind == "reference"
 
 
 def test_extract_resource_links_filters_navigation():

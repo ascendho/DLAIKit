@@ -17,6 +17,13 @@ UI_LABELS = {
     "Hide Transcript",
 }
 
+TRANSCRIPT_UI_PHRASES = {
+    "are you sure",
+    "permanently remove",
+    "restore the original version",
+    "restoring the original version",
+}
+
 
 @dataclass
 class ResourceLink:
@@ -90,12 +97,7 @@ def extract_transcript_from_lines(lines):
 
     while index >= 0:
         line = lines[index]
-        looks_like_ui = (
-            line in UI_LABELS
-            or line.startswith("Image")
-            or "・" in line
-            or line.startswith("http")
-        )
+        looks_like_ui = _looks_like_transcript_ui(line)
         looks_like_transcript = (
             len(line) >= 40
             and not looks_like_ui
@@ -115,9 +117,37 @@ def extract_transcript_from_lines(lines):
     return "\n\n".join(transcript)
 
 
+def extract_transcript_from_soup(soup):
+    candidates = []
+    for candidate in soup.select("div.hidden"):
+        if candidate.get("class", []) != ["hidden"]:
+            continue
+        parent_classes = set(candidate.parent.get("class", [])) if candidate.parent else set()
+        if not {"drawer-content", "overflow-scroll"}.issubset(parent_classes):
+            continue
+
+        text = re.sub(r"\s+", " ", candidate.get_text(" ", strip=True)).strip()
+        if not text or text.lower() == "course detail" or _looks_like_transcript_ui(text):
+            continue
+        candidates.append(text)
+
+    return max(candidates, key=len) if candidates else ""
+
+
 def extract_lesson_data(html):
     lines, soup = clean_lines(html)
-    return extract_title(soup), extract_transcript_from_lines(lines)
+    transcript = extract_transcript_from_soup(soup) or extract_transcript_from_lines(lines)
+    return extract_title(soup), transcript
+
+
+def _looks_like_transcript_ui(text):
+    return (
+        text in UI_LABELS
+        or text.startswith("Image")
+        or "・" in text
+        or text.startswith("http")
+        or any(phrase in text.lower() for phrase in TRANSCRIPT_UI_PHRASES)
+    )
 
 
 def extract_course_info(html, base_url):
@@ -390,6 +420,8 @@ def _nearest_module_title(anchor):
 
 def _infer_lesson_kind(text):
     lower = text.lower()
+    if "glossary" in lower:
+        return "reference"
     if "graded assignment" in lower or "assignment" in lower:
         return "assignment"
     if "quiz" in lower:

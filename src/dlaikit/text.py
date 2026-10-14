@@ -22,7 +22,13 @@ def course_slug_from_url(url):
 
 def is_lesson_url(url):
     parts = [part for part in urlparse(url).path.split("/") if part]
-    return "courses" in parts and "lesson" in parts
+    try:
+        course_index = parts.index("courses")
+        lesson_index = parts.index("lesson", course_index + 2)
+    except ValueError:
+        return False
+
+    return course_index + 1 < lesson_index and lesson_index + 1 < len(parts)
 
 
 def slugify(text, fallback="item", max_length=80):

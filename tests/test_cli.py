@@ -2,6 +2,8 @@ import sys
 
 import pytest
 
+import dlaikit.cli as cli_module
+
 from dlaikit.cli import (
     ConfigError,
     ProgressReporter,
@@ -11,6 +13,7 @@ from dlaikit.cli import (
     print_progress,
     settings_from_config,
 )
+from dlaikit.writer import LessonResult
 
 
 class FakeTTY:
@@ -52,6 +55,37 @@ def test_cli_rejects_removed_options():
         parser.parse_args(["--study-pack"])
 
 
+def test_cli_returns_failure_for_partial_transcript_failure(monkeypatch, tmp_path):
+    class FakeCrawler:
+        def __init__(self, **kwargs):
+            self.code_assets_summary = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            pass
+
+        def run(self, course_url):
+            return (
+                "course",
+                tmp_path / "course" / "manifest.json",
+                [
+                    LessonResult(1, "https://example.test/1", "One", "saved"),
+                    LessonResult(2, "https://example.test/2", "Two", "failed"),
+                ],
+            )
+
+    monkeypatch.setattr(
+        cli_module,
+        "load_settings",
+        lambda path: cli_module.Settings("https://example.test/course"),
+    )
+    monkeypatch.setattr(cli_module, "TranscriptCrawler", FakeCrawler)
+
+    assert cli_module.main([]) == 1
+
+
 def test_load_settings_from_config_file(tmp_path):
     config_path = tmp_path / "dlaikit.json"
     config_path.write_text(
@@ -63,8 +97,8 @@ def test_load_settings_from_config_file(tmp_path):
           "output_dir": "exports",
           "auth_state": ".auth/custom.json",
           "browser_visibility": "hidden",
-          "execute_lesson_notebooks": true,
-          "notebook_execute_timeout_seconds": 123,
+          "browser_channel": "chrome",
+          "browser_profile_dir": ".auth/chrome-profile",
           "skip_code_dirs": ["models"],
           "force": true
         }
@@ -80,8 +114,8 @@ def test_load_settings_from_config_file(tmp_path):
     assert settings.output_dir == "exports"
     assert settings.auth_state == ".auth/custom.json"
     assert settings.browser_visibility == "hidden"
-    assert settings.execute_lesson_notebooks is True
-    assert settings.notebook_execute_timeout_seconds == 123
+    assert settings.browser_channel == "chrome"
+    assert settings.browser_profile_dir == ".auth/chrome-profile"
     assert settings.skip_code_dirs == ["models"]
     assert settings.force is True
 
@@ -94,8 +128,8 @@ def test_settings_from_config_uses_defaults():
     assert settings.output_dir == "exports"
     assert settings.auth_state == ".auth/deeplearning_ai.json"
     assert settings.browser_visibility == "auto"
-    assert settings.execute_lesson_notebooks is False
-    assert settings.notebook_execute_timeout_seconds == 900
+    assert settings.browser_channel == "chromium"
+    assert settings.browser_profile_dir == ""
     assert settings.skip_code_dirs == []
     assert settings.force is False
 
@@ -130,22 +164,22 @@ def test_settings_from_config_validates_force_bool():
         )
 
 
-def test_settings_from_config_validates_execute_lesson_notebooks_bool():
-    with pytest.raises(ConfigError, match="execute_lesson_notebooks"):
+def test_settings_from_config_validates_browser_channel():
+    with pytest.raises(ConfigError, match="browser_channel"):
         settings_from_config(
             {
                 "course_url": "https://example.test/course",
-                "execute_lesson_notebooks": "yes",
+                "browser_channel": "safari",
             }
         )
 
 
-def test_settings_from_config_validates_notebook_execute_timeout_seconds_int():
-    with pytest.raises(ConfigError, match="notebook_execute_timeout_seconds"):
+def test_settings_from_config_validates_browser_profile_dir_string():
+    with pytest.raises(ConfigError, match="browser_profile_dir"):
         settings_from_config(
             {
                 "course_url": "https://example.test/course",
-                "notebook_execute_timeout_seconds": 0,
+                "browser_profile_dir": [".auth/chrome-profile"],
             }
         )
 
@@ -183,7 +217,7 @@ def test_progress_reporter_non_tty_uses_plain_lines(capsys):
     reporter.update(1, 2, "fetching", "Introduction")
     reporter.update(1, 2, "skipped", "Introduction")
     reporter.update(1, 1, "skipped", "course code")
-    reporter.update(0, 0, "writing", "study pack")
+    reporter.update(0, 0, "writing", "manifest")
 
     captured = capsys.readouterr()
     assert captured.err == (
@@ -191,7 +225,7 @@ def test_progress_reporter_non_tty_uses_plain_lines(capsys):
         "[01/02] fetching Introduction\n"
         "[01/02] skipped  Introduction\n"
         "[01/01] skipped  course code\n"
-        "writing study pack\n"
+        "writing manifest\n"
     )
 
 
@@ -203,7 +237,7 @@ def test_progress_reporter_tty_uses_spinner_and_status_icon():
     reporter.update(2, 11, "fetching", "Inside a Coding Agent")
     reporter.update(2, 11, "saved", "Inside a Coding Agent")
     reporter.update(1, 1, "skipped", "course code")
-    reporter.update(0, 0, "writing", "study pack")
+    reporter.update(0, 0, "writing", "manifest")
     reporter.close()
 
     output = stream.getvalue()
@@ -211,6 +245,6 @@ def test_progress_reporter_tty_uses_spinner_and_status_icon():
     assert "[02/11] fetching Inside a Coding Agent" in output
     assert "+ [02/11] saved    Inside a Coding Agent\n" in output
     assert "- [01/01] skipped  course code\n" in output
-    assert "writing study pack" in output
-    assert "+ saved    study pack\n" not in output
+    assert "writing manifest" in output
+    assert "+ saved    manifest\n" not in output
     assert "\r" in output

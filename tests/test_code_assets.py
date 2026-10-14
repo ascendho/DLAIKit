@@ -6,7 +6,6 @@ from dlaikit.code_assets import (
     extract_jupyter_lab_links,
     JupyterCodeDownloader,
     JupyterLabLink,
-    NotebookExecutionError,
     parse_jupyter_contents_location,
     redact_url,
 )
@@ -49,27 +48,6 @@ class FakeHttpError(RuntimeError):
     def __init__(self, status):
         self.status = status
         super().__init__("GET https://lab.example.test/api/contents?content=1 failed with HTTP {}".format(status))
-
-
-class FakeNotebookExecutor:
-    def __init__(self, fail=False):
-        self.fail = fail
-        self.calls = []
-
-    def execute(self, location, notebook_path, notebook, token=None):
-        self.calls.append((location.base_url, notebook_path, token))
-        cell = notebook["cells"][0]
-        cell["execution_count"] = 1
-        cell["outputs"] = [
-            {
-                "output_type": "stream",
-                "name": "stdout",
-                "text": "executed\n",
-            }
-        ]
-        if self.fail:
-            raise NotebookExecutionError("boom", notebook=notebook)
-        return notebook
 
 
 def jupyter_dir(name, path, content):
@@ -240,6 +218,14 @@ def test_extract_jupyter_lab_links_accepts_iframe_without_token():
     assert links[0].token == ""
     assert links[0].lesson_url == "https://learn.example.test/project"
     assert links[0].group == "project"
+
+
+def test_extract_jupyter_lab_links_ignores_non_jupyter_lab_app():
+    html = """
+    <iframe src="https://s172-29-18-14p8888.lab-aws-production.deeplearning.ai/?token=secret"></iframe>
+    """
+
+    assert extract_jupyter_lab_links(html) == []
 
 
 def test_extract_jupyter_lab_links_from_anchor_href():
@@ -437,118 +423,6 @@ def test_downloader_skips_configured_directory_names_case_insensitively(tmp_path
     assert client.requested == ["https://lab.example.test/api/contents/course?content=1"]
 
 
-def test_downloader_executes_lesson_notebooks_when_enabled(tmp_path):
-    responses = {
-        "https://lab.example.test/api/contents/course": jupyter_dir(
-            "course",
-            "course",
-            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "print('hello')")],
-        )
-    }
-    executor = FakeNotebookExecutor()
-
-    summary = JupyterCodeDownloader(
-        FakeJupyterClient(responses),
-        tmp_path,
-        "course-slug",
-        execute_lesson_notebooks=True,
-        notebook_executor=executor,
-    ).download("https://lab.example.test/tree/course?token=secret")
-
-    notebook = json.loads((tmp_path / "course-slug" / "code" / "lessons" / "demo.ipynb").read_text(encoding="utf-8"))
-    assert notebook["cells"][0]["execution_count"] == 1
-    assert notebook["cells"][0]["outputs"][0]["text"] == "executed\n"
-    assert executor.calls == [("https://lab.example.test/api/contents", "course/demo.ipynb", "secret")]
-    assert summary.saved == 1
-    assert summary.executed == 1
-    assert summary.execution_failed == 0
-    assert summary.files[0].message == "executed"
-
-
-def test_downloader_does_not_execute_project_notebooks(tmp_path):
-    responses = {
-        "https://project-lab.example.test/api/contents/project": jupyter_dir(
-            "project",
-            "project",
-            [jupyter_notebook("project.ipynb", "project/project.ipynb", "print('project')")],
-        ),
-        "https://manual-lab.example.test/api/contents": jupyter_dir("", "", []),
-    }
-    executor = FakeNotebookExecutor()
-    links = [JupyterLabLink("https://project-lab.example.test/tree/project", group="project")]
-
-    summary = JupyterCodeDownloader(
-        FakeJupyterClient(responses),
-        tmp_path,
-        "course-slug",
-        execute_lesson_notebooks=True,
-        notebook_executor=executor,
-    ).download("https://manual-lab.example.test/tree", discovered_links=links)
-
-    notebook = json.loads(
-        (tmp_path / "course-slug" / "code" / "project" / "project.ipynb").read_text(encoding="utf-8")
-    )
-    assert notebook["cells"][0]["execution_count"] is None
-    assert notebook["cells"][0]["outputs"] == []
-    assert executor.calls == []
-    assert summary.saved == 1
-    assert summary.executed == 0
-
-
-def test_downloader_saves_partial_notebook_when_execution_fails(tmp_path):
-    responses = {
-        "https://lab.example.test/api/contents/course": jupyter_dir(
-            "course",
-            "course",
-            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "raise RuntimeError('boom')")],
-        )
-    }
-    executor = FakeNotebookExecutor(fail=True)
-
-    summary = JupyterCodeDownloader(
-        FakeJupyterClient(responses),
-        tmp_path,
-        "course-slug",
-        execute_lesson_notebooks=True,
-        notebook_executor=executor,
-    ).download("https://lab.example.test/tree/course")
-
-    notebook = json.loads((tmp_path / "course-slug" / "code" / "lessons" / "demo.ipynb").read_text(encoding="utf-8"))
-    assert notebook["cells"][0]["outputs"][0]["text"] == "executed\n"
-    assert summary.saved == 1
-    assert summary.failed == 0
-    assert summary.executed == 0
-    assert summary.execution_failed == 1
-    assert summary.files[0].message == "execution failed: boom"
-
-
-def test_downloader_does_not_execute_skipped_existing_notebook(tmp_path):
-    responses = {
-        "https://lab.example.test/api/contents/course": jupyter_dir(
-            "course",
-            "course",
-            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "print('new')")],
-        )
-    }
-    code_dir = tmp_path / "course-slug" / "code" / "lessons"
-    code_dir.mkdir(parents=True)
-    (code_dir / "demo.ipynb").write_text(json.dumps({"cells": [], "metadata": {}}), encoding="utf-8")
-    executor = FakeNotebookExecutor()
-
-    summary = JupyterCodeDownloader(
-        FakeJupyterClient(responses),
-        tmp_path,
-        "course-slug",
-        execute_lesson_notebooks=True,
-        notebook_executor=executor,
-    ).download("https://lab.example.test/tree/course")
-
-    assert executor.calls == []
-    assert summary.saved == 0
-    assert summary.skipped == 1
-    assert summary.executed == 0
-
-
 def test_downloader_skips_existing_file_unless_force(tmp_path):
     responses = {
         "https://lab.example.test/api/contents/course": {
@@ -637,6 +511,32 @@ def test_downloader_saves_project_links_under_project_group(tmp_path):
     ) == "print('project')\n"
     assert summary.saved == 1
     assert summary.files[0].path == "project/app.py"
+
+
+def test_downloader_saves_notebook_without_executing_it(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents/course": jupyter_dir(
+            "course",
+            "course",
+            [jupyter_notebook("demo.ipynb", "course/demo.ipynb", "print('hello')")],
+        )
+    }
+
+    summary = JupyterCodeDownloader(
+        FakeJupyterClient(responses),
+        tmp_path,
+        "course-slug",
+    ).download("https://lab.example.test/tree/course")
+
+    notebook = json.loads(
+        (tmp_path / "course-slug" / "code" / "lessons" / "demo.ipynb").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert notebook["cells"][0]["source"] == "print('hello')"
+    assert notebook["cells"][0]["execution_count"] is None
+    assert notebook["cells"][0]["outputs"] == []
+    assert summary.saved == 1
 
 
 def test_downloader_saves_lesson_and_project_discovered_links(tmp_path):
@@ -791,6 +691,109 @@ def test_downloader_skips_manual_url_without_reusable_token_when_links_are_disco
         "https://s172-29-2-142p8888.lab-aws-production.deeplearning.ai/api/contents?token=secret&content=1",
     ]
     assert "secret" not in summary.source_url
+
+
+def test_downloader_uses_completion_marker_on_later_runs(tmp_path):
+    api_url = "https://lab.example.test/api/contents?token=secret&content=1"
+    responses = {
+        "https://lab.example.test/api/contents": {
+            "type": "directory",
+            "name": "",
+            "path": "",
+            "content": [],
+        }
+    }
+    links = [
+        JupyterLabLink(
+            "https://lab.example.test/tree?token=secret",
+            token="secret",
+            lesson_url="https://learn.example.test/courses/course/lesson/id/code",
+        )
+    ]
+    first_client = FakeJupyterClient(responses)
+    first = JupyterCodeDownloader(first_client, tmp_path, "course").download(
+        "",
+        discovered_links=links,
+    )
+
+    second_client = FakeJupyterClient(responses)
+    second = JupyterCodeDownloader(second_client, tmp_path, "course").download(
+        "",
+        discovered_links=links,
+    )
+
+    assert first.failed == 0
+    assert first_client.requested == [api_url]
+    assert second.failed == 0
+    assert second.skipped == 1
+    assert second_client.requested == []
+    assert second.files[0].message == "code assets already downloaded completely"
+    assert (tmp_path / ".auth" / "code-downloads" / "course.json").is_file()
+    assert not (tmp_path / "course" / "code" / ".dlaikit-complete.json").exists()
+
+
+def test_same_lab_source_is_downloaded_once_with_project_precedence(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents": jupyter_dir(
+            "",
+            "",
+            [jupyter_file("app.py", "app.py", "print('official')\n")],
+        )
+    }
+    links = [
+        JupyterLabLink("https://lab.example.test/tree", group="lessons"),
+        JupyterLabLink("https://lab.example.test/tree", group="project"),
+    ]
+    client = FakeJupyterClient(responses)
+
+    summary = JupyterCodeDownloader(client, tmp_path, "course").download(
+        "",
+        discovered_links=links,
+    )
+
+    assert summary.saved == 1
+    assert client.requested == ["https://lab.example.test/api/contents?content=1"]
+    assert not (tmp_path / "course" / "code" / "lessons" / "app.py").exists()
+    assert (tmp_path / "course" / "code" / "project" / "app.py").read_text(
+        encoding="utf-8"
+    ) == "print('official')\n"
+
+
+def test_completion_marker_accepts_current_source_subset(tmp_path):
+    responses = {
+        "https://lab.example.test/api/contents": {
+            "type": "directory",
+            "name": "",
+            "path": "",
+            "content": [],
+        }
+    }
+    completed_links = [
+        JupyterLabLink(
+            "https://lab.example.test/tree?token=secret",
+            token="secret",
+            lesson_url="https://learn.example.test/courses/course/lesson/one/code",
+        ),
+        JupyterLabLink(
+            "https://lab.example.test/tree?token=secret",
+            token="secret",
+            lesson_url="https://learn.example.test/courses/course/lesson/two/code",
+        ),
+    ]
+    JupyterCodeDownloader(FakeJupyterClient(responses), tmp_path, "course").download(
+        "",
+        discovered_links=completed_links,
+    )
+    subset_client = FakeJupyterClient(responses)
+
+    summary = JupyterCodeDownloader(subset_client, tmp_path, "course").download(
+        "",
+        discovered_links=completed_links[:1],
+    )
+
+    assert summary.failed == 0
+    assert summary.skipped == 1
+    assert subset_client.requested == []
 
 
 def test_downloader_skips_bare_manual_url_when_discovered_link_matches_tree(tmp_path):
@@ -949,7 +952,7 @@ def test_downloader_reports_jupyter_auth_error_without_authenticator(tmp_path):
 
     assert summary.failed == 1
     assert "Jupyter authentication or a live lab session is required" in summary.errors[0]
-    assert "Safari cookies are not reused" in summary.errors[0]
+    assert "Safari cookies cannot be reused" in summary.errors[0]
 
 
 def test_downloader_treats_api_timeout_as_recoverable_jupyter_auth_error(tmp_path):
@@ -967,7 +970,7 @@ def test_downloader_treats_api_timeout_as_recoverable_jupyter_auth_error(tmp_pat
     assert "live lab session" in summary.errors[0]
 
 
-def test_downloader_deduplicates_identical_nested_lib_and_rewrites_references(tmp_path):
+def test_downloader_preserves_duplicate_directories_and_file_contents(tmp_path):
     responses = {
         "https://lab.example.test/api/contents/course": jupyter_dir(
             "course",
@@ -1003,26 +1006,22 @@ def test_downloader_deduplicates_identical_nested_lib_and_rewrites_references(tm
 
     code_dir = tmp_path / "course-slug" / "code" / "lessons"
     assert (code_dir / "lib" / "tools.py").exists()
-    assert not (code_dir / "L2" / "lib").exists()
+    assert (code_dir / "L2" / "lib" / "tools.py").exists()
 
     demo = (code_dir / "L2" / "demo.py").read_text(encoding="utf-8")
-    assert "_SCHOLARIUM_SHARED_CODE_ROOT = Path(__file__).resolve().parents[1]" in demo
-    assert demo.index("_SCHOLARIUM_SHARED_CODE_ROOT") < demo.index("from lib.tools import run")
+    assert demo == "from lib.tools import run\nVALUE = run()\n"
 
     notebook = json.loads((code_dir / "L2" / "L2.ipynb").read_text(encoding="utf-8"))
-    assert "_SCHOLARIUM_SHARED_CODE_ROOT = Path.cwd().resolve().parents[0]" in notebook["cells"][0]["source"]
-    assert "from lib.tools import run" in notebook["cells"][1]["source"]
+    assert len(notebook["cells"]) == 1
+    assert notebook["cells"][0]["source"] == "from lib.tools import run\nrun()"
 
     utils = (code_dir / "lib" / "utils.py").read_text(encoding="utf-8")
-    assert 'open(Path(__file__).resolve().parent / "sbx_tools.py", "r")' in utils
+    assert 'open("lib/sbx_tools.py", "r")' in utils
 
-    assert summary.saved == 6
-    assert summary.deduplicated == 4
-    assert summary.rewritten == 3
-    assert len([file for file in summary.files if file.status == "deduplicated"]) == 4
+    assert summary.saved == 10
 
 
-def test_downloader_deduplicates_against_previously_rewritten_shared_lib(tmp_path):
+def test_downloader_does_not_modify_preexisting_or_new_duplicate_directories(tmp_path):
     code_dir = tmp_path / "course-slug" / "code" / "lessons"
     write_rewritten_shared_lib(code_dir / "lib")
     responses = {
@@ -1049,16 +1048,15 @@ def test_downloader_deduplicates_against_previously_rewritten_shared_lib(tmp_pat
     ).download("https://lab.example.test/tree/course")
 
     assert (code_dir / "lib" / "tools.py").exists()
-    assert not (code_dir / "L2" / "lib").exists()
+    assert (code_dir / "L2" / "lib" / "tools.py").exists()
     assert 'Path(__file__).resolve().parent / "sbx_tools.py"' in (
         code_dir / "lib" / "utils.py"
     ).read_text(encoding="utf-8")
-    assert summary.saved == 0
+    assert summary.saved == 4
     assert summary.skipped == 4
-    assert summary.deduplicated == 4
 
 
-def test_downloader_promotes_first_identical_nested_folder_when_root_is_missing(tmp_path):
+def test_downloader_preserves_identical_nested_folders_in_place(tmp_path):
     responses = {
         "https://lab.example.test/api/contents/course": jupyter_dir(
             "course",
@@ -1107,19 +1105,12 @@ def test_downloader_promotes_first_identical_nested_folder_when_root_is_missing(
     ).download("https://lab.example.test/tree/course")
 
     code_dir = tmp_path / "course-slug" / "code" / "lessons"
-    assert (code_dir / "lib" / "__init__.py").read_text(encoding="utf-8") == "VALUE = 1\n"
-    assert not (code_dir / "L2" / "lib").exists()
-    assert not (code_dir / "L3" / "lib").exists()
-    assert "Path(__file__).resolve().parents[1]" in (code_dir / "L2" / "demo.py").read_text(
-        encoding="utf-8"
-    )
-    assert "Path(__file__).resolve().parents[1]" in (code_dir / "L3" / "demo.py").read_text(
-        encoding="utf-8"
-    )
-    assert summary.saved == 3
-    assert summary.deduplicated == 1
-    assert summary.rewritten == 2
-    assert any(file.path == "lessons/lib/__init__.py" for file in summary.files)
+    assert not (code_dir / "lib").exists()
+    assert (code_dir / "L2" / "lib" / "__init__.py").read_text(encoding="utf-8") == "VALUE = 1\n"
+    assert (code_dir / "L3" / "lib" / "__init__.py").read_text(encoding="utf-8") == "VALUE = 1\n"
+    assert (code_dir / "L2" / "demo.py").read_text(encoding="utf-8") == "from lib import VALUE\n"
+    assert (code_dir / "L3" / "demo.py").read_text(encoding="utf-8") == "from lib import VALUE\n"
+    assert summary.saved == 4
 
 
 def test_downloader_keeps_same_name_folders_when_contents_differ(tmp_path):
@@ -1158,5 +1149,3 @@ def test_downloader_keeps_same_name_folders_when_contents_differ(tmp_path):
     assert (code_dir / "lib" / "tool.py").exists()
     assert (code_dir / "L2" / "lib" / "tool.py").exists()
     assert summary.saved == 2
-    assert summary.deduplicated == 0
-    assert summary.rewritten == 0

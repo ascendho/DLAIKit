@@ -6,16 +6,18 @@ import threading
 import time
 from pathlib import Path
 
-from .crawler import TranscriptCrawler
-from .fetchers import MissingDependencyError
+from .crawler import CourseDiscoveryError, TranscriptCrawler
+from .fetchers import LoginRequiredError, MissingDependencyError, NavigationError
 
 
 CONFIG_PATH = Path("dlaikit.json")
 DEFAULT_OUTPUT_ROOT = "exports"
 DEFAULT_AUTH_STATE = ".auth/deeplearning_ai.json"
 DEFAULT_BROWSER_VISIBILITY = "auto"
-DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS = 900
+DEFAULT_BROWSER_CHANNEL = "chromium"
+DEFAULT_BROWSER_PROFILE_DIR = ""
 BROWSER_VISIBILITY_CHOICES = {"auto", "hidden", "visible"}
+BROWSER_CHANNEL_CHOICES = {"chromium", "chrome"}
 
 
 def build_parser():
@@ -43,32 +45,33 @@ def main(argv=None):
             output_root=settings.output_dir,
             auth_state=settings.auth_state,
             force=settings.force,
-            study_pack=True,
             browser_visibility=settings.browser_visibility,
+            browser_channel=settings.browser_channel,
+            browser_profile_dir=settings.browser_profile_dir,
             code_url=settings.code_url,
             code_token=settings.code_token,
-            execute_lesson_notebooks=settings.execute_lesson_notebooks,
-            notebook_execute_timeout_seconds=settings.notebook_execute_timeout_seconds,
             skip_code_dirs=settings.skip_code_dirs,
             progress_callback=progress.update,
         ) as crawler:
-            course_slug, index_path, results = crawler.run(settings.course_url)
-    except MissingDependencyError as exc:
+            course_slug, manifest_path, results = crawler.run(settings.course_url)
+    except (CourseDiscoveryError, LoginRequiredError, MissingDependencyError) as exc:
         progress.close()
         print(str(exc), file=sys.stderr)
         return 2
+    except NavigationError as exc:
+        progress.close()
+        print(str(exc), file=sys.stderr)
+        return 1
     finally:
         progress.close()
 
     saved = sum(1 for result in results if result.status == "saved")
     skipped = sum(1 for result in results if result.status == "skipped")
-    metadata = sum(1 for result in results if result.status == "metadata")
+    no_transcript = sum(1 for result in results if result.status == "no_transcript")
     failed = sum(1 for result in results if result.status == "failed")
 
     print("Course: {}".format(course_slug))
-    print("Index: {}".format(index_path))
-    for label, path in crawler.study_pack_paths.items():
-        print("{}: {}".format(label.title(), path))
+    print("Manifest: {}".format(manifest_path))
     if crawler.code_assets_summary is not None:
         code_assets = crawler.code_assets_summary
         code_counts = [
@@ -76,23 +79,15 @@ def main(argv=None):
             "Skipped: {}".format(code_assets.skipped),
             "Failed: {}".format(code_assets.failed),
         ]
-        if code_assets.deduplicated:
-            code_counts.append("Deduplicated: {}".format(code_assets.deduplicated))
-        if code_assets.rewritten:
-            code_counts.append("Rewritten: {}".format(code_assets.rewritten))
-        if code_assets.executed:
-            code_counts.append("Executed: {}".format(code_assets.executed))
-        if code_assets.execution_failed:
-            code_counts.append("Execution Failed: {}".format(code_assets.execution_failed))
         print("Code: {}".format(code_assets.output_dir))
         print("Code {}".format("  ".join(code_counts)))
         for error in code_assets.errors:
             print("Code Failed: {}".format(error))
     print(
-        "Transcripts Saved: {}  Skipped: {}  Metadata: {}  Failed: {}".format(
+        "Transcripts Saved: {}  Skipped: {}  No Transcript: {}  Failed: {}".format(
             saved,
             skipped,
-            metadata,
+            no_transcript,
             failed,
         )
     )
@@ -103,7 +98,7 @@ def main(argv=None):
 
     if crawler.code_assets_summary is not None and crawler.code_assets_summary.failed:
         return 1
-    return 1 if failed and not (saved or skipped) else 0
+    return 1 if failed else 0
 
 
 class ConfigError(Exception):
@@ -119,9 +114,9 @@ class Settings:
         output_dir=DEFAULT_OUTPUT_ROOT,
         auth_state=DEFAULT_AUTH_STATE,
         browser_visibility=DEFAULT_BROWSER_VISIBILITY,
+        browser_channel=DEFAULT_BROWSER_CHANNEL,
+        browser_profile_dir=DEFAULT_BROWSER_PROFILE_DIR,
         force=False,
-        execute_lesson_notebooks=False,
-        notebook_execute_timeout_seconds=DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS,
         skip_code_dirs=None,
     ):
         self.course_url = course_url
@@ -130,9 +125,9 @@ class Settings:
         self.output_dir = output_dir
         self.auth_state = auth_state
         self.browser_visibility = browser_visibility
+        self.browser_channel = browser_channel
+        self.browser_profile_dir = browser_profile_dir
         self.force = force
-        self.execute_lesson_notebooks = execute_lesson_notebooks
-        self.notebook_execute_timeout_seconds = notebook_execute_timeout_seconds
         self.skip_code_dirs = list(skip_code_dirs or [])
 
 
@@ -172,6 +167,15 @@ def settings_from_config(config, config_path=CONFIG_PATH):
         raise ConfigError(
             "browser_visibility must be one of: auto, hidden, visible."
         )
+    browser_channel = _config_string(
+        config,
+        "browser_channel",
+        default=DEFAULT_BROWSER_CHANNEL,
+    )
+    if browser_channel not in BROWSER_CHANNEL_CHOICES:
+        raise ConfigError(
+            "browser_channel must be one of: chromium, chrome."
+        )
     return Settings(
         course_url=course_url,
         code_url=_config_string(config, "code_url"),
@@ -179,14 +183,13 @@ def settings_from_config(config, config_path=CONFIG_PATH):
         output_dir=_config_string(config, "output_dir", default=DEFAULT_OUTPUT_ROOT),
         auth_state=_config_string(config, "auth_state", default=DEFAULT_AUTH_STATE),
         browser_visibility=browser_visibility,
-        force=_config_bool(config, "force", default=False),
-        execute_lesson_notebooks=_config_bool(config, "execute_lesson_notebooks", default=False),
-        notebook_execute_timeout_seconds=_config_int(
+        browser_channel=browser_channel,
+        browser_profile_dir=_config_string(
             config,
-            "notebook_execute_timeout_seconds",
-            default=DEFAULT_NOTEBOOK_EXECUTE_TIMEOUT_SECONDS,
-            minimum=1,
+            "browser_profile_dir",
+            default=DEFAULT_BROWSER_PROFILE_DIR,
         ),
+        force=_config_bool(config, "force", default=False),
         skip_code_dirs=_config_string_list(config, "skip_code_dirs", default=[]),
     )
 
@@ -204,15 +207,6 @@ def _config_bool(config, key, default=False):
     value = config.get(key, default)
     if not isinstance(value, bool):
         raise ConfigError("Config value {} must be true or false.".format(key))
-    return value
-
-
-def _config_int(config, key, default=0, minimum=None):
-    value = config.get(key, default)
-    if not isinstance(value, int) or isinstance(value, bool):
-        raise ConfigError("Config value {} must be an integer.".format(key))
-    if minimum is not None and value < minimum:
-        raise ConfigError("Config value {} must be at least {}.".format(key, minimum))
     return value
 
 
@@ -240,7 +234,7 @@ class ProgressReporter:
     STATUS_ICONS = {
         "saved": "+",
         "skipped": "-",
-        "metadata": "*",
+        "no_transcript": "*",
         "failed": "!",
     }
 

@@ -1,6 +1,9 @@
 import base64
 import json
 import re
+import shutil
+import tempfile
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import List
@@ -32,6 +35,9 @@ SKIP_FILE_NAMES = {
 CODE_GROUP_LESSONS = "lessons"
 CODE_GROUP_PROJECT = "project"
 CODE_GROUPS = {CODE_GROUP_LESSONS, CODE_GROUP_PROJECT}
+CODE_LAYOUT_FLAT = "flat"
+CODE_LAYOUT_GROUPED = "grouped"
+CODE_LAYOUT_VERSION = 2
 
 
 class CodeDownloadError(RuntimeError):
@@ -156,6 +162,7 @@ class JupyterCodeDownloader:
     def download(self, code_url, discovered_links=None):
         discovered_links = list(discovered_links or [])
         download_sources = self._download_sources(code_url, discovered_links)
+        layout = _code_layout(download_sources)
         source_url = download_sources[0][0] if download_sources else code_url
         summary = CodeAssetSummary(
             source_url=redact_url(source_url),
@@ -163,8 +170,10 @@ class JupyterCodeDownloader:
             source_urls=[redact_url(source[0]) for source in download_sources],
             skip_dirs=list(self.skip_dirs),
         )
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        completion_fingerprint = _completion_fingerprint(code_url, discovered_links)
+        if not download_sources:
+            return summary
+
+        completion_fingerprint = _completion_fingerprint(code_url, discovered_links, layout)
         if not self.force and self._is_complete(completion_fingerprint):
             summary.skipped += 1
             summary.files.append(
@@ -176,6 +185,19 @@ class JupyterCodeDownloader:
             )
             return summary
 
+        rebuild = self.state_path.exists()
+        staging_dir = None
+        if rebuild:
+            self.output_dir.parent.mkdir(parents=True, exist_ok=True)
+            staging_dir = Path(
+                tempfile.mkdtemp(prefix=".dlaikit-code-", dir=str(self.output_dir.parent))
+            )
+            self._active_output_dir = staging_dir
+        else:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            self._active_output_dir = self.output_dir
+        self._active_layout = layout
+
         for source_url, token, group in download_sources:
             try:
                 location = parse_jupyter_contents_location(source_url)
@@ -186,15 +208,30 @@ class JupyterCodeDownloader:
                 summary.errors.append(redact_url(str(exc)))
 
         if summary.failed == 0:
-            self._write_completion_marker(completion_fingerprint)
+            try:
+                if staging_dir is not None:
+                    self._replace_output(staging_dir)
+                    staging_dir = None
+                self._write_completion_marker(completion_fingerprint)
+            except Exception as exc:
+                summary.failed += 1
+                summary.errors.append("Could not finalize code assets: {}".format(exc))
+        if staging_dir is not None:
+            shutil.rmtree(staging_dir, ignore_errors=True)
         return summary
 
     def _is_complete(self, fingerprint):
+        if not self.output_dir.is_dir():
+            return False
         try:
             payload = json.loads(self.state_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError):
             return False
         if payload.get("code_url") != fingerprint.get("code_url"):
+            return False
+        if payload.get("layout_version") != CODE_LAYOUT_VERSION:
+            return False
+        if payload.get("layout") != fingerprint.get("layout"):
             return False
         try:
             completed_sources = {tuple(source) for source in payload.get("sources", [])}
@@ -204,6 +241,24 @@ class JupyterCodeDownloader:
         if requested_sources:
             return requested_sources.issubset(completed_sources)
         return bool(fingerprint.get("code_url"))
+
+    def _replace_output(self, staging_dir):
+        backup_dir = self.output_dir.with_name(
+            ".dlaikit-code-backup-{}".format(uuid.uuid4().hex)
+        )
+        had_output = self.output_dir.exists()
+        if had_output:
+            self.output_dir.replace(backup_dir)
+        try:
+            staging_dir.replace(self.output_dir)
+        except Exception:
+            if had_output and backup_dir.exists():
+                backup_dir.replace(self.output_dir)
+            raise
+        if backup_dir.is_dir():
+            shutil.rmtree(backup_dir)
+        elif backup_dir.exists():
+            backup_dir.unlink()
 
     def _write_completion_marker(self, fingerprint):
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -287,7 +342,7 @@ class JupyterCodeDownloader:
         summary.skipped += 1
         summary.files.append(
             CodeAssetFile(
-                path=_asset_path(group, path),
+                path=_asset_path(group, path, self._active_layout),
                 status="skipped",
                 message="unsupported Jupyter content type: {}".format(entry_type or "unknown"),
             )
@@ -319,12 +374,15 @@ class JupyterCodeDownloader:
         name = entry.get("name", "")
         path = _clean_remote_path(entry.get("path", name))
         relative_path = _relative_remote_path(path, location.root_path, name)
-        asset_path = _asset_path(group, relative_path)
+        asset_path = _asset_path(group, relative_path, self._active_layout)
 
         if _should_skip_file(relative_path, name):
             return
 
-        output_path = _safe_output_path(self.output_dir / _normalize_code_group(group), relative_path)
+        output_root = self._active_output_dir
+        if self._active_layout == CODE_LAYOUT_GROUPED:
+            output_root = output_root / _normalize_code_group(group)
+        output_path = _safe_output_path(output_root, relative_path)
         if output_path is None:
             summary.skipped += 1
             summary.files.append(
@@ -371,7 +429,7 @@ class JupyterCodeDownloader:
         summary.skipped += 1
         summary.files.append(
             CodeAssetFile(
-                path=_asset_path(group, relative_path),
+                path=_asset_path(group, relative_path, self._active_layout),
                 status="skipped",
                 message="skipped by config: {} directory".format(directory_name),
             )
@@ -593,7 +651,7 @@ def _source_identity(url):
     )
 
 
-def _completion_fingerprint(code_url, discovered_links):
+def _completion_fingerprint(code_url, discovered_links, layout):
     sources = sorted(
         {
             (
@@ -607,6 +665,8 @@ def _completion_fingerprint(code_url, discovered_links):
     )
     return {
         "code_url": redact_url(code_url),
+        "layout": layout,
+        "layout_version": CODE_LAYOUT_VERSION,
         "sources": [list(source) for source in sources],
     }
 
@@ -620,8 +680,15 @@ def _normalize_code_group(group):
     return group if group in CODE_GROUPS else CODE_GROUP_LESSONS
 
 
-def _asset_path(group, relative_path):
+def _code_layout(download_sources):
+    groups = {_normalize_code_group(source[2]) for source in download_sources}
+    return CODE_LAYOUT_GROUPED if len(groups) > 1 else CODE_LAYOUT_FLAT
+
+
+def _asset_path(group, relative_path, layout):
     relative_path = str(relative_path or "").strip("/")
+    if layout == CODE_LAYOUT_FLAT:
+        return relative_path or "."
     group = _normalize_code_group(group)
     return "{}/{}".format(group, relative_path) if relative_path else group
 

@@ -94,20 +94,19 @@ exports/<course-slug>/
   transcripts/
     01-<lesson-slug>.md
   code/
-    lessons/
-    project/
+    <课程原始代码和目录>
   manifest.json
 ```
 
 - `transcripts/`：官网逐课字幕正文，并附最小标题和来源链接。
 - `code/`：从自动发现或手工后备的 Jupyter/Lab 入口保存到本地的可访问代码和资料。
-- `code/lessons/`：来自普通 code lesson 页面或后备 `code_url` 的 lesson 代码。
-- `code/project/`：来自 project、graded 或 assignment 页面中可见 lab 入口的项目代码；未发现时不会生成内容。
+- 只有 lesson 代码或只有 project 代码时，远端目录会直接保存在 `code/`，不会增加只有一层内容的分类目录。
+- lesson 和 project 代码同时存在时，才会分别保存在 `code/lessons/` 和 `code/project/`，避免同名文件相互覆盖。
 - `manifest.json`：最小来源与处理状态清单，不包含课程摘要、学习目标或讲师归纳。
 
 `no_transcript` 表示程序检查官网页面后确认该课程项没有字幕。课程类型不会用于提前排除字幕，因此同时包含视频和代码示例的 lesson 仍会正常导出 transcript；没有字幕的代码示例、测验、作业和参考页面只记录在 `manifest.json`，也不会因此导致命令失败。
 
-下载器保留 Jupyter/Lab 返回的相对目录和文件内容，不会去重、移动共享目录或改写 Python/Notebook 引用。同一 Lab 同时出现在普通 lesson 和 project 页面时只保存一份，并归入 `code/project/`。下载断点状态保存在 `.auth/code-downloads/`，不会混入课程代码目录。
+下载器保留 Jupyter/Lab 返回的相对目录和文件内容，不会去重、移动共享目录或改写 Python/Notebook 引用。同一 Lab 同时出现在普通 lesson 和 project 页面时只保存一份，并按 project 处理；如果没有其他 lesson Lab，内容仍直接保存在 `code/`。下载断点状态保存在 `.auth/code-downloads/`，不会混入课程代码目录。
 
 ## 登录态
 
